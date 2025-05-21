@@ -20,7 +20,7 @@ class User: ObservableObject, Identifiable{
     
     
     
-    enum userRole: String, Codable  {
+    enum userRole: String {
         case student
         case clubHead
         case administrator
