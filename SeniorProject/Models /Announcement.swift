@@ -17,7 +17,7 @@ struct Announcement: Identifiable {
     let isPinned: Bool
     var reactions: [UUID: ReactionType]
     
-    enum ReactionType: String, Codable, CaseIterable {
+    enum ReactionType: String,CaseIterable {
         case like = "👍"
         case love = "❤️"
         case laugh = "😂"
