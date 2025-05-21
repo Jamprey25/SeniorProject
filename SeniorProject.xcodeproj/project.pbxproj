@@ -75,9 +75,6 @@
 		5B25A49B2DDCE01900F78B03 = {
 			isa = PBXGroup;
 			children = (
-				5B25A4ED2DDCE93400F78B03 /* ViewModels */,
-				5B25A4EC2DDCE90B00F78B03 /* Views */,
-				5B25A4EB2DDCE90200F78B03 /* Models */,
 				5B25A4A62DDCE01900F78B03 /* SeniorProject */,
 				5B25A4B72DDCE01B00F78B03 /* SeniorProjectTests */,
 				5B25A4C12DDCE01B00F78B03 /* SeniorProjectUITests */,
@@ -93,27 +90,6 @@
 				5B25A4BE2DDCE01B00F78B03 /* SeniorProjectUITests.xctest */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		5B25A4EB2DDCE90200F78B03 /* Models */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Models;
-			sourceTree = "<group>";
-		};
-		5B25A4EC2DDCE90B00F78B03 /* Views */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Views;
-			sourceTree = "<group>";
-		};
-		5B25A4ED2DDCE93400F78B03 /* ViewModels */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = ViewModels;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
