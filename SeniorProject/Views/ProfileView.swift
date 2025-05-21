@@ -26,7 +26,7 @@ struct ProfileView: View {
                     .padding(.vertical)
                 }
                 
-                Section(header: Text("Settings")) {
+                Section(header:Text("Settings")) {
                     Text("Edit Profile")
                     Text("Notifications")
                     Text("Privacy")

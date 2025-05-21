@@ -11,7 +11,7 @@ let mainColor = Color(.purple)
 struct MainTabView: View {
     var body: some View {
         TabView {
-            Text("Feed")
+            FeedView()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(mainColor)
                 .ignoresSafeArea()
@@ -20,7 +20,7 @@ struct MainTabView: View {
                     Text("Feed")
                 }
             
-            Text("Explore")
+            ExploreView()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(mainColor)
                 .ignoresSafeArea()
@@ -29,7 +29,7 @@ struct MainTabView: View {
                     Text("Explore")
                 }
             
-            Text("My Clubs")
+            MyClubsView()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(mainColor)
                 .ignoresSafeArea()
@@ -38,7 +38,7 @@ struct MainTabView: View {
                     Text("My Clubs")
                 }
             
-            Text("Profile")
+            ProfileView()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(mainColor)
                 .ignoresSafeArea()
@@ -48,7 +48,7 @@ struct MainTabView: View {
                 }
         }
         .tint(.black)
-        .foregroundStyle(.white)
+      
         
     }
 }
