@@ -17,9 +17,9 @@ struct ProfileView: View {
                             )
                         
                         VStack(alignment: .leading) {
-                            Text("User Name")
+                            Text(authViewModel.username.isEmpty ? "Username" : authViewModel.username)
                                 .font(.headline)
-                            Text("user@email.com")
+                            Text(authViewModel.user?.email ?? "user@email.com")
                                 .font(.subheadline)
                                 .foregroundColor(.gray)
                         }

@@ -4,6 +4,7 @@ struct LoginView: View {
     @EnvironmentObject var authViewModel: AuthenticationViewModel
     @State private var email = ""
     @State private var password = ""
+    @State private var username = ""
     @State private var isSignUp = false
     
     var body: some View {
@@ -14,10 +15,18 @@ struct LoginView: View {
                 NavigationView {
                     VStack(spacing: 20) {
                         // Logo or App Name
-                        Text("Senior Project")
+                        Text("ClubHub")
                             .font(.largeTitle)
                             .fontWeight(.bold)
                             .padding(.bottom, 30)
+                        
+                        // Username Field (only shown during sign up)
+                        if isSignUp {
+                            TextField("Username", text: $username)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .textContentType(.username)
+                                .autocapitalization(.none)
+                        }
                         
                         // Email Field
                         TextField("Email", text: $email)
@@ -41,7 +50,7 @@ struct LoginView: View {
                         // Sign In/Up Button
                         Button(action: {
                             if isSignUp {
-                                authViewModel.signUp(email: email, password: password)
+                                authViewModel.signUp(email: email, password: password, username: username)
                             } else {
                                 authViewModel.signIn(email: email, password: password)
                             }
@@ -57,6 +66,10 @@ struct LoginView: View {
                         // Toggle Sign In/Up
                         Button(action: {
                             isSignUp.toggle()
+                            // Clear fields when toggling
+                            if !isSignUp {
+                                username = ""
+                            }
                         }) {
                             Text(isSignUp ? "Already have an account? Sign In" : "Don't have an account? Sign Up")
                                 .foregroundColor(.blue)
