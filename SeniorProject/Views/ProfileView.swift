@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct ProfileView: View {
+    @EnvironmentObject var authViewModel: AuthenticationViewModel
+    
     var body: some View {
         NavigationView {
             List {
@@ -34,8 +36,12 @@ struct ProfileView: View {
                 }
                 
                 Section {
-                    Text("Sign Out")
-                        .foregroundColor(.red)
+                    Button(action: {
+                        authViewModel.signOut()
+                    }) {
+                        Text("Sign Out")
+                            .foregroundColor(.red)
+                    }
                 }
             }
             .navigationTitle("Profile")
@@ -45,4 +51,5 @@ struct ProfileView: View {
 
 #Preview {
     ProfileView()
+        .environmentObject(AuthenticationViewModel())
 } 
