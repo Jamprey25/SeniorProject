@@ -6,7 +6,8 @@
 //
 
 import Foundation
-struct Announcement: Identifiable {
+
+struct Announcement: Identifiable, Codable {
     let id: UUID
     let clubID: UUID
     let authorID: UUID
@@ -17,7 +18,7 @@ struct Announcement: Identifiable {
     let isPinned: Bool
     var reactions: [UUID: ReactionType]
     
-    enum ReactionType: String,CaseIterable {
+    enum ReactionType: String, CaseIterable, Codable {
         case like = "👍"
         case love = "❤️"
         case laugh = "😂"

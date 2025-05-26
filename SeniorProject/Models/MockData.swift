@@ -1,14 +1,14 @@
 import Foundation
 
 struct MockData {
-    static let clubs: [club] = [
-        club(
+    static let clubs: [Club] = [
+        Club(
             name: "Chess Club",
             description: "Join us for strategic gameplay and friendly competition. All skill levels welcome!",
             category: .academic,
             tags: ["strategy", "games", "competition"],
             schoolID: UUID(),
-            meetingSchedule: "Every Tuesday 3:30-5:00 PM",
+            meetingSchedule: "Every Tuesday 11:45-12:15 PM",
             meetingLocation: "Room 204",
             logo: "chess-club",
             memberIDs: [],
@@ -16,13 +16,13 @@ struct MockData {
             isApproved: true,
             requiresApplicationToJoin: false
         ),
-        club(
+        Club(
             name: "Boys Mental Health Club",
             description: "A safe space for boys to discuss mental health, share experiences, and support each other. We focus on emotional well-being, stress management, and building healthy relationships.",
             category: .affinity,
             tags: ["mental health", "support", "wellness"],
             schoolID: UUID(),
-            meetingSchedule: "Every Thursday 3:30-5:00 PM",
+            meetingSchedule: "Every Friday 11:45-12:15 PM",
             meetingLocation: "Room 302",
             logo: "bmh-club",
             memberIDs: [],
@@ -30,13 +30,13 @@ struct MockData {
             isApproved: true,
             requiresApplicationToJoin: false
         ),
-        club(
+        Club(
             name: "Computer Science Club",
             description: "Learn programming, algorithms, and software development. Work on projects, participate in hackathons, and prepare for coding competitions. All skill levels welcome!",
             category: .stem,
             tags: ["programming", "technology", "coding"],
             schoolID: UUID(),
-            meetingSchedule: "Every Monday and Wednesday 3:30-5:30 PM",
+            meetingSchedule: "Every Monday and Wednesday 12:00-12:40 PM",
             meetingLocation: "CS Lab",
             logo: "cs-club",
             memberIDs: [],
@@ -44,13 +44,13 @@ struct MockData {
             isApproved: true,
             requiresApplicationToJoin: true
         ),
-        club(
+        Club(
             name: "Law Club",
             description: "Explore legal concepts, debate current legal issues, and prepare for mock trials. Perfect for students interested in law, politics, or public speaking.",
             category: .academic,
             tags: ["law", "debate", "politics"],
             schoolID: UUID(),
-            meetingSchedule: "Every Friday 3:30-4:30 PM",
+            meetingSchedule: "Every Friday 11:45-12:15 PM",
             meetingLocation: "Room 105",
             logo: "law-club",
             memberIDs: [],
@@ -58,7 +58,7 @@ struct MockData {
             isApproved: true,
             requiresApplicationToJoin: false
         ),
-        club(
+        Club(
             name: "Debate Team",
             description: "Develop critical thinking and public speaking skills through competitive debate.",
             category: .academic,
