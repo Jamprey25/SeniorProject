@@ -16,6 +16,7 @@ class club : ObservableObject,Identifiable{
     @Published var creationDate: Date
     @Published var meetingSchedule: String
     @Published var meetingLocation: String
+    @Published var logo: String // Image name in Assets catalog
     //@Published var logoURL: URL?
     //@Published var coverImageURL: URL?
     @Published var memberIDs: [UUID]
@@ -33,6 +34,7 @@ class club : ObservableObject,Identifiable{
              creationDate: Date = Date(),
              meetingSchedule: String = "",
              meetingLocation: String = "",
+             logo: String = "default_club_logo",
              memberIDs: [UUID] = [],
              leadershipRoles: [ClubLeadershipRole] = [],
              isApproved: Bool = false,
@@ -46,7 +48,7 @@ class club : ObservableObject,Identifiable{
             self.creationDate = creationDate
             self.meetingSchedule = meetingSchedule
             self.meetingLocation = meetingLocation
-          
+            self.logo = logo
             self.memberIDs = memberIDs
             self.leadershipRoles = leadershipRoles
             self.isApproved = isApproved
