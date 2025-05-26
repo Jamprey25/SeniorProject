@@ -17,9 +17,11 @@ struct ExploreView: View {
                                     .fill(Color.gray.opacity(0.2))
                                     .frame(height: 100)
                                     .overlay(
-                                        Text(String(club.name.prefix(1)))
-                                            .font(.title)
-                                            .foregroundColor(.gray)
+                                        Image(club.logo)
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                            .clipped()
                                     )
                                 
                                 Text(club.name)
