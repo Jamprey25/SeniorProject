@@ -5,7 +5,8 @@
 //  Created by Joseph Amprey on 5/20/25.
 //
 import Foundation
-struct ClubLeadershipRole: Identifiable {
+
+struct ClubLeadershipRole: Identifiable, Codable {
     let id: UUID
     var userID: UUID
     var role: String
