@@ -4,6 +4,7 @@ struct FeedView: View {
     @State private var isRefreshing = false
     @State private var announcements = MockData.announcements
     @State private var selectedReaction: Announcement.ReactionType?
+    @EnvironmentObject var authViewModel: AuthenticationViewModel
     
     var body: some View {
         NavigationView {

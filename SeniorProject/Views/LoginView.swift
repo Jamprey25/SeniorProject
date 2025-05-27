@@ -9,104 +9,106 @@ struct LoginView: View {
     @State private var isAnimating = false
     
     var body: some View {
-        Group {
-            if authViewModel.isAuthenticated {
-                MainTabView()
-            } else {
-                NavigationView {
-                    ZStack {
-                        // Background gradient
-                        AppTheme.backgroundGradient
-                            .ignoresSafeArea()
-                        
-                        ScrollView {
-                            VStack(spacing: AppTheme.spacingLarge) {
-                                // Logo and App Name
-                                VStack(spacing: AppTheme.spacingSmall) {
-                                    Image(systemName: "person.3.fill")
-                                        .font(.system(size: 60))
-                                        .foregroundColor(AppTheme.primary)
-                                        .padding(.bottom, AppTheme.spacingSmall)
-                                    
-                                    Text("ClubHub")
-                                        .font(.system(size: 40, weight: .bold, design: .rounded))
-                                        .foregroundColor(AppTheme.textPrimary)
-                                }
-                                .padding(.top, 60)
-                                .padding(.bottom, 40)
+        NavigationView {
+            ZStack {
+                // Background gradient
+                AppTheme.backgroundGradient
+                    .ignoresSafeArea()
+                
+                if authViewModel.needsEmailVerification {
+                    EmailVerificationView()
+                } else {
+                    ScrollView {
+                        VStack(spacing: AppTheme.spacingLarge) {
+                            // Logo and App Name
+                            VStack(spacing: AppTheme.spacingSmall) {
+                                Image(systemName: "person.3.fill")
+                                    .font(.system(size: 60))
+                                    .foregroundColor(AppTheme.primary)
+                                    .padding(.bottom, AppTheme.spacingSmall)
                                 
-                                // Form Fields
-                                VStack(spacing: AppTheme.spacingMedium) {
-                                    // Username Field (only shown during sign up)
-                                    if isSignUp {
-                                        CustomTextField(
-                                            text: $username,
-                                            placeholder: "Username",
-                                            systemImage: "person.fill"
-                                        )
-                                    }
-                                    
-                                    // Email Field
-                                    CustomTextField(
-                                        text: $email,
-                                        placeholder: "Email",
-                                        systemImage: "envelope.fill"
-                                    )
-                                    
-                                    // Password Field
-                                    CustomSecureField(
-                                        text: $password,
-                                        placeholder: "Password",
-                                        systemImage: "lock.fill"
-                                    )
-                                }
-                                .padding(.horizontal, AppTheme.spacingLarge)
-                                
-                                // Error Message
-                                if let errorMessage = authViewModel.errorMessage {
-                                    Text(errorMessage)
-                                        .foregroundColor(AppTheme.secondary)
-                                        .font(.subheadline)
-                                        .padding(.top, AppTheme.spacingSmall)
-                                }
-                                
-                                // Sign In/Up Button
-                                Button(action: {
-                                    withAnimation(.spring()) {
-                                        if isSignUp {
-                                            authViewModel.signUp(email: email, password: password, username: username)
-                                        } else {
-                                            authViewModel.signIn(email: email, password: password)
-                                        }
-                                    }
-                                }) {
-                                    Text(isSignUp ? "Sign Up" : "Sign In")
-                                        .font(.headline)
-                                }
-                                .primaryButtonStyle()
-                                .padding(.top, AppTheme.spacingMedium)
-                                
-                                // Toggle Sign In/Up
-                                Button(action: {
-                                    withAnimation(.spring()) {
-                                        isSignUp.toggle()
-                                        if !isSignUp {
-                                            username = ""
-                                        }
-                                    }
-                                }) {
-                                    Text(isSignUp ? "Already have an account? Sign In" : "Don't have an account? Sign Up")
-                                        .foregroundColor(AppTheme.primary)
-                                        .font(.subheadline)
-                                }
-                                .padding(.top, AppTheme.spacingMedium)
+                                Text("ClubHub")
+                                    .font(.system(size: 40, weight: .bold, design: .rounded))
+                                    .foregroundColor(AppTheme.textPrimary)
                             }
-                            .padding(.bottom, AppTheme.spacingLarge)
+                            .padding(.top, 60)
+                            .padding(.bottom, 40)
+                            
+                            // Form Fields
+                            VStack(spacing: AppTheme.spacingMedium) {
+                                // Username Field (only shown during sign up)
+                                if isSignUp {
+                                    CustomTextField(
+                                        text: $username,
+                                        placeholder: "Username",
+                                        systemImage: "person.fill"
+                                    )
+                                }
+                                
+                                // Email Field
+                                CustomTextField(
+                                    text: $email,
+                                    placeholder: "Email",
+                                    systemImage: "envelope.fill"
+                                )
+                                
+                                // Password Field
+                                CustomSecureField(
+                                    text: $password,
+                                    placeholder: "Password",
+                                    systemImage: "lock.fill"
+                                )
+                            }
+                            .padding(.horizontal, AppTheme.spacingLarge)
+                            
+                            // Error Message
+                            if let errorMessage = authViewModel.errorMessage {
+                                Text(errorMessage)
+                                    .foregroundColor(AppTheme.secondary)
+                                    .font(.subheadline)
+                                    .padding(.top, AppTheme.spacingSmall)
+                            }
+                            
+                            // Sign In/Up Button
+                            Button(action: {
+                                withAnimation(.spring()) {
+                                    if isSignUp {
+                                        Task {
+                                            await authViewModel.signUp(email: email, password: password, username: username)
+                                        }
+                                    } else {
+                                        Task {
+                                            await authViewModel.signIn(email: email, password: password)
+                                        }
+                                    }
+                                }
+                            }) {
+                                Text(isSignUp ? "Sign Up" : "Sign In")
+                                    .font(.headline)
+                            }
+                            .primaryButtonStyle()
+                            .padding(.top, AppTheme.spacingMedium)
+                            
+                            // Toggle Sign In/Up
+                            Button(action: {
+                                withAnimation(.spring()) {
+                                    isSignUp.toggle()
+                                    if !isSignUp {
+                                        username = ""
+                                    }
+                                }
+                            }) {
+                                Text(isSignUp ? "Already have an account? Sign In" : "Don't have an account? Sign Up")
+                                    .foregroundColor(AppTheme.primary)
+                                    .font(.subheadline)
+                            }
+                            .padding(.top, AppTheme.spacingMedium)
                         }
+                        .padding(.bottom, AppTheme.spacingLarge)
                     }
-                    .navigationBarHidden(true)
                 }
             }
+            .navigationBarHidden(true)
         }
     }
 }

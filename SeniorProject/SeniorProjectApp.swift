@@ -23,13 +23,30 @@ struct SeniorProjectApp: App {
     
     var body: some Scene {
         WindowGroup {
-            if authViewModel.isAuthenticated {
-                MainTabView()
-                    .environmentObject(authViewModel)
-            } else {
-                LoginView()
-                    .environmentObject(authViewModel)
+            Group {
+                if authViewModel.isAuthenticated {
+                    if authViewModel.needsEmailVerification {
+                        EmailVerificationView()
+                            .environmentObject(authViewModel)
+                    } else {
+                        MainTabView()
+                            .environmentObject(authViewModel)
+                    }
+                } else {
+                    LoginView()
+                        .environmentObject(authViewModel)
+                }
             }
+            .onChange(of: authViewModel.isAuthenticated) { newValue in
+                print("Auth state changed: isAuthenticated = \(newValue)")
+                print("Current user: \(String(describing: authViewModel.user))")
+                print("Email verified: \(authViewModel.isEmailVerified)")
+                print("Needs verification: \(authViewModel.needsEmailVerification)")
+            }
+            .onChange(of: authViewModel.needsEmailVerification) { newValue in
+                print("Email verification state changed: needsVerification = \(newValue)")
+            }
+            .id(authViewModel.isAuthenticated)
         }
     }
 }

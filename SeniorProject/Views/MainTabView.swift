@@ -16,24 +16,28 @@ struct MainTabView: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             FeedView()
+                .environmentObject(authViewModel)
                 .tabItem {
                     Label("Feed", systemImage: "newspaper")
                 }
                 .tag(0)
             
             ExploreView()
+                .environmentObject(authViewModel)
                 .tabItem {
                     Label("Explore", systemImage: "magnifyingglass")
                 }
                 .tag(1)
             
             MyClubsView()
+                .environmentObject(authViewModel)
                 .tabItem {
                     Label("My Clubs", systemImage: "person.3")
                 }
                 .tag(2)
             
             ProfileView()
+                .environmentObject(authViewModel)
                 .tabItem {
                     Label("Profile", systemImage: "person.circle")
                 }

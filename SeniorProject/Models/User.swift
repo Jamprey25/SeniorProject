@@ -10,7 +10,6 @@ class User: ObservableObject, Identifiable{
     let id : UUID
     @Published var username: String
     @Published var email: String
-    @Published var schoolID: UUID
     @Published var role: userRole
     @Published var joinedClubIDs: [UUID]
     //@Published var profileImageURL: URL?
@@ -31,7 +30,6 @@ class User: ObservableObject, Identifiable{
     init(id: UUID = UUID(),
     username: String,
     email: String,
-    schoolID: UUID,
     role: userRole = .student,
     joinedClubIDs : [UUID] = [],
     bio: String = "",
@@ -39,7 +37,6 @@ class User: ObservableObject, Identifiable{
         self.id = id
         self.username = username
         self.email = email
-        self.schoolID = schoolID
         self.role = role
         self.joinedClubIDs = joinedClubIDs
         self.bio = bio
