@@ -68,77 +68,77 @@ struct Club: Identifiable, Codable {
         case other = "Other"
     }
     
-    // MARK: - Member Management Methods
     
-    /// Add a member to the club
-    mutating func addMember(memberID: UUID) {
+    
+   
+    mutating func addMember(memberID: UUID) { //only accescibale to club head
         if !memberIDs.contains(memberID) {
             memberIDs.append(memberID)
         }
     }
     
-    /// Remove a member from the club
-    mutating func removeMember(memberID: UUID) {
+    
+    mutating func removeMember(memberID: UUID) {//only accescibale to club head
         memberIDs.removeAll { $0 == memberID }
     }
     
-    /// Check if a user is a member of the club
-    func isMember(memberID: UUID) -> Bool {
+    
+   public func isMember(memberID: UUID) -> Bool {
         return memberIDs.contains(memberID)
     }
     
-    /// Get the total number of members
-    func getMemberCount() -> Int {
+    
+    public func getMemberCount() -> Int {
         return memberIDs.count
     }
     
     // MARK: - Leadership Role Methods
     
-    /// Add a leadership role
-    mutating func addLeadershipRole(_ role: ClubLeadershipRole) {
+   
+    mutating func addLeadershipRole(_ role: ClubLeadershipRole) { //only accescibale to club head and administrator
         leadershipRoles.append(role)
     }
     
-    /// Remove a leadership role
-    mutating func removeLeadershipRole(for userID: UUID) {
+    
+    mutating func removeLeadershipRole(for userID: UUID) {//only accescibale to club head and administrator
         leadershipRoles.removeAll { $0.userID == userID }
     }
     
-    /// Get all leadership roles
-    func getLeadershipRoles() -> [ClubLeadershipRole] {
+   
+    public func getLeadershipRoles() -> [ClubLeadershipRole] {
         return leadershipRoles
     }
     
-    /// Check if a user has a leadership role
-    func hasLeadershipRole(userID: UUID) -> Bool {
+   
+    public func hasLeadershipRole(userID: UUID) -> Bool {
         return leadershipRoles.contains { $0.userID == userID }
     }
     
-    // MARK: - Club Information Methods
+    //ONLY People with leadership roles can do these
     
-    /// Update club description
+   
     mutating func updateDescription(_ newDescription: String) {
         self.description = newDescription
     }
     
-    /// Update meeting information
+    
     mutating func updateMeetingInfo(schedule: String, location: String) {
         self.meetingSchedule = schedule
         self.meetingLocation = location
     }
     
-    /// Add tags to the club
+    
     mutating func addTags(_ newTags: [String]) {
         let uniqueTags = Set(tags + newTags)
         self.tags = Array(uniqueTags)
     }
     
-    /// Remove tags from the club
+   
     mutating func removeTags(_ tagsToRemove: [String]) {
         self.tags.removeAll { tagsToRemove.contains($0) }
     }
     
-    /// Get club information as a dictionary
+    
     func getClubInfo() -> [String: Any] {
         return [
             "name": name,
