@@ -13,7 +13,6 @@ class User: ObservableObject, Identifiable{
     @Published var schoolID: UUID
     @Published var role: userRole
     @Published var joinedClubIDs: [UUID]
-    @Published var followedClubIDs: [UUID]
     //@Published var profileImageURL: URL?
     @Published var bio: String
     @Published var grade: Int?
@@ -35,7 +34,6 @@ class User: ObservableObject, Identifiable{
     schoolID: UUID,
     role: userRole = .student,
     joinedClubIDs : [UUID] = [],
-    followedClubIDs: [UUID] = [],
     bio: String = "",
     grade: Int? = nil) {
         self.id = id
@@ -44,7 +42,6 @@ class User: ObservableObject, Identifiable{
         self.schoolID = schoolID
         self.role = role
         self.joinedClubIDs = joinedClubIDs
-        self.followedClubIDs = followedClubIDs
         self.bio = bio
         self.grade = grade
     }
@@ -52,4 +49,56 @@ class User: ObservableObject, Identifiable{
     //created methods later 
     
     
+    
+   
+    func joinClub(clubID: UUID) {
+        if !joinedClubIDs.contains(clubID) {
+            joinedClubIDs.append(clubID)
+        }
+    }
+    
+   
+    func leaveClub(clubID: UUID) {
+        joinedClubIDs.removeAll { $0 == clubID }
+    }
+    
+   
+    func isMemberOfClub(clubID: UUID) -> Bool {
+        return joinedClubIDs.contains(clubID)
+    }
+    func isClubHead() -> Bool {
+        return role == .clubHead
+    }
+    
+   
+    func isAdministrator() -> Bool {
+        return role == .administrator
+    }
+    
+   
+    func updateRole(newRole: userRole) {
+        self.role = newRole
+    }
+    
+   
+    func updateBio(newBio: String) {
+        self.bio = newBio
+    }
+    
+    
+    func updateGrade(newGrade: Int?) {
+        self.grade = newGrade
+    }
+    
+   
+    func getProfileInfo() -> [String: Any] {
+        return [
+            "username": username,
+            "email": email,
+            "role": role.rawValue,
+            "bio": bio,
+            "grade": grade as Any,
+            "joinedClubs": joinedClubIDs.count
+        ]
+    }
 }
