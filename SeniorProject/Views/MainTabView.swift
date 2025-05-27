@@ -40,20 +40,20 @@ struct MainTabView: View {
                 .tag(3)
         }
         .overlay(alignment: .bottom) {
-            // Floating Action Button
+           
             FloatingActionButton(isExpanded: $isFABExpanded)
-                .padding(.bottom, 80) // Space for tab bar
+                .padding(.bottom, 80)
         }
     }
 }
 
-// Floating Action Button
+
 struct FloatingActionButton: View {
     @Binding var isExpanded: Bool
     
     var body: some View {
         ZStack {
-            // Expanded Menu
+       
             if isExpanded {
                 VStack(spacing: AppTheme.spacingMedium) {
                     FABMenuItem(

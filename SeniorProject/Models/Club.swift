@@ -67,4 +67,90 @@ struct Club: Identifiable, Codable {
         case affinity = "affinity"
         case other = "Other"
     }
+    
+    // MARK: - Member Management Methods
+    
+    /// Add a member to the club
+    mutating func addMember(memberID: UUID) {
+        if !memberIDs.contains(memberID) {
+            memberIDs.append(memberID)
+        }
+    }
+    
+    /// Remove a member from the club
+    mutating func removeMember(memberID: UUID) {
+        memberIDs.removeAll { $0 == memberID }
+    }
+    
+    /// Check if a user is a member of the club
+    func isMember(memberID: UUID) -> Bool {
+        return memberIDs.contains(memberID)
+    }
+    
+    /// Get the total number of members
+    func getMemberCount() -> Int {
+        return memberIDs.count
+    }
+    
+    // MARK: - Leadership Role Methods
+    
+    /// Add a leadership role
+    mutating func addLeadershipRole(_ role: ClubLeadershipRole) {
+        leadershipRoles.append(role)
+    }
+    
+    /// Remove a leadership role
+    mutating func removeLeadershipRole(for userID: UUID) {
+        leadershipRoles.removeAll { $0.userID == userID }
+    }
+    
+    /// Get all leadership roles
+    func getLeadershipRoles() -> [ClubLeadershipRole] {
+        return leadershipRoles
+    }
+    
+    /// Check if a user has a leadership role
+    func hasLeadershipRole(userID: UUID) -> Bool {
+        return leadershipRoles.contains { $0.userID == userID }
+    }
+    
+    // MARK: - Club Information Methods
+    
+    /// Update club description
+    mutating func updateDescription(_ newDescription: String) {
+        self.description = newDescription
+    }
+    
+    /// Update meeting information
+    mutating func updateMeetingInfo(schedule: String, location: String) {
+        self.meetingSchedule = schedule
+        self.meetingLocation = location
+    }
+    
+    /// Add tags to the club
+    mutating func addTags(_ newTags: [String]) {
+        let uniqueTags = Set(tags + newTags)
+        self.tags = Array(uniqueTags)
+    }
+    
+    /// Remove tags from the club
+    mutating func removeTags(_ tagsToRemove: [String]) {
+        self.tags.removeAll { tagsToRemove.contains($0) }
+    }
+    
+    /// Get club information as a dictionary
+    func getClubInfo() -> [String: Any] {
+        return [
+            "name": name,
+            "description": description,
+            "category": category.rawValue,
+            "tags": tags,
+            "meetingSchedule": meetingSchedule,
+            "meetingLocation": meetingLocation,
+            "memberCount": memberIDs.count,
+            "leadershipCount": leadershipRoles.count,
+            "isApproved": isApproved,
+            "requiresApplication": requiresApplicationToJoin
+        ]
+    }
 }
