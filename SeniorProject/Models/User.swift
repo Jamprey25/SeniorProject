@@ -6,7 +6,7 @@
 //
 
 import Foundation
-class User: ObservableObject, Identifiable{
+class User: ObservableObject, Identifiable, Equatable {
     let id : UUID
     @Published var username: String
     @Published var email: String
@@ -16,7 +16,15 @@ class User: ObservableObject, Identifiable{
     @Published var bio: String
     @Published var grade: Int?
     
-    
+    static func == (lhs: User, rhs: User) -> Bool {
+        lhs.id == rhs.id &&
+        lhs.username == rhs.username &&
+        lhs.email == rhs.email &&
+        lhs.role == rhs.role &&
+        lhs.joinedClubIDs == rhs.joinedClubIDs &&
+        lhs.bio == rhs.bio &&
+        lhs.grade == rhs.grade
+    }
     
     enum userRole: String {
         case student

@@ -2,6 +2,7 @@ import Foundation
 import Firebase
 import FirebaseAuth
 import FirebaseFirestore
+import SwiftUI
 
 @MainActor
 class AuthenticationViewModel: ObservableObject {
@@ -20,20 +21,53 @@ class AuthenticationViewModel: ObservableObject {
     init() {
         handle = Auth.auth().addStateDidChangeListener { [weak self] _, firebaseUser in
             Task { @MainActor in
-                print("Auth state changed - User: \(String(describing: firebaseUser))")
+                print("Auth state changed - User: \(String(describing: firebaseUser?.uid))")
+                print("Email verified: \(firebaseUser?.isEmailVerified ?? false)")
+                
                 self?.isAuthenticated = firebaseUser != nil
+                
                 if let firebaseUser = firebaseUser {
+                    // NEW: Reload user to get fresh verification status
+                    try? await firebaseUser.reload()
                     self?.isEmailVerified = firebaseUser.isEmailVerified
-                    await self?.fetchUserData(userId: firebaseUser.uid)
+                    self?.needsEmailVerification = !firebaseUser.isEmailVerified
+                    
+                    // Always fetch user data when we have a valid user
+                    if firebaseUser.isEmailVerified {
+                        await self?.fetchUserData(userId: firebaseUser.uid)
+                    }
                 } else {
-                    self?.user = nil
-                    self?.isEmailVerified = false
-                    self?.needsEmailVerification = false
+                    self?.resetAuthState()
                 }
-                print("isAuthenticated set to: \(self?.isAuthenticated ?? false)")
-                self?.objectWillChange.send()
+                self?.logAuthState()
             }
         }
+    }
+    
+    deinit {
+        if let handle = handle {
+            Auth.auth().removeStateDidChangeListener(handle)
+        }
+    }
+    
+    // NEW: Debug logging helper
+    private func logAuthState() {
+        print("""
+        Auth State Update:
+        - isAuthenticated: \(isAuthenticated)
+        - isEmailVerified: \(isEmailVerified)
+        - needsVerification: \(needsEmailVerification)
+        - currentUser: \(user?.email ?? "nil")
+        """)
+    }
+    
+    // NEW: Reset auth state helper
+    private func resetAuthState() {
+        user = nil
+        isEmailVerified = false
+        needsEmailVerification = false
+        username = ""
+        objectWillChange.send()
     }
     
     private func fetchUserData(userId: String) async {
@@ -49,39 +83,48 @@ class AuthenticationViewModel: ObservableObject {
                     bio: data["bio"] as? String ?? "",
                     grade: data["grade"] as? Int
                 )
-                self.user = user
-                self.username = user.username
-                self.objectWillChange.send()
+                await MainActor.run {
+                    self.user = user
+                    self.username = user.username
+                    self.objectWillChange.send()
+                }
+            } else {
+                // If no user document exists, create one
+                print("No user document found, creating one...")
+                let newUser = User(
+                    id: UUID(uuidString: userId) ?? UUID(),
+                    username: username,
+                    email: auth.currentUser?.email ?? "",
+                    role: .student
+                )
+                try await db.collection("users").document(userId).setData([
+                    "id": newUser.id.uuidString,
+                    "username": newUser.username,
+                    "email": newUser.email,
+                    "role": newUser.role.rawValue,
+                    "joinedClubIDs": [],
+                    "bio": "",
+                    "grade": nil
+                ])
+                await MainActor.run {
+                    self.user = newUser
+                    self.objectWillChange.send()
+                }
             }
         } catch {
             print("Error fetching user data: \(error.localizedDescription)")
         }
     }
     
-    deinit {
-        if let handle = handle {
-            Auth.auth().removeStateDidChangeListener(handle)
-        }
-    }
-    
-    // MARK: - Authentication Methods
-    
     func signUp(email: String, password: String, username: String) async {
-        print("Starting sign up process...")
         isLoading = true
         errorMessage = nil
         
         do {
-            print("Creating Firebase user...")
-            // Create Firebase Auth user
             let authResult = try await auth.createUser(withEmail: email, password: password)
-            
-            // Send verification email
             try await authResult.user.sendEmailVerification()
             
-            // Set authentication state
-            print("Setting initial authentication state...")
-            self.isAuthenticated = true  // Set to true to show EmailVerificationView
+            self.isAuthenticated = true
             self.isEmailVerified = false
             self.needsEmailVerification = true
             self.username = username
@@ -91,17 +134,11 @@ class AuthenticationViewModel: ObservableObject {
                 email: email,
                 role: .student
             )
-            print("Sign up complete. isAuthenticated: \(self.isAuthenticated), needsEmailVerification: \(self.needsEmailVerification)")
             self.objectWillChange.send()
             
         } catch {
-            print("Error during sign up: \(error.localizedDescription)")
             errorMessage = error.localizedDescription
-            // If there's an error, ensure we're not in an authenticated state
-            self.isAuthenticated = false
-            self.isEmailVerified = false
-            self.needsEmailVerification = false
-            self.user = nil
+            resetAuthState()
             self.objectWillChange.send()
         }
         
@@ -114,142 +151,111 @@ class AuthenticationViewModel: ObservableObject {
         errorMessage = nil
         
         do {
-            print("Attempting Firebase sign in...")
-            // Sign in with Firebase
+            print("Attempting to sign in with Firebase...")
             let authResult = try await auth.signIn(withEmail: email, password: password)
+            print("Firebase sign in successful, reloading user...")
+            try await authResult.user.reload()  // Critical refresh
             
-            // Reload user to get latest verification status
-            try await authResult.user.reload()
-            let isVerified = authResult.user.isEmailVerified
-            print("Email verification status: \(isVerified)")
+            print("Checking email verification status...")
+            print("User ID: \(authResult.user.uid)")
+            print("Email: \(authResult.user.email ?? "nil")")
+            print("Email verified: \(authResult.user.isEmailVerified)")
             
-            if !isVerified {
+            guard authResult.user.isEmailVerified else {
                 print("Email not verified, signing out...")
-                errorMessage = "Please verify your email before signing in"
-                self.isAuthenticated = false
-                self.needsEmailVerification = true
                 try await auth.signOut()
-                self.objectWillChange.send()
+                await MainActor.run {
+                    isAuthenticated = false
+                    needsEmailVerification = true
+                    errorMessage = "Please verify your email before signing in"
+                    objectWillChange.send()
+                }
                 return
             }
             
-            print("Fetching user data from Firestore...")
-            // Fetch user data from Firestore
-            let userDoc = try await db.collection("users").document(authResult.user.uid).getDocument()
+            print("Email verified, fetching user data...")
+            await fetchUserData(userId: authResult.user.uid)
             
-            if let data = userDoc.data() {
-                print("User data found in Firestore")
-                let user = User(
-                    id: UUID(uuidString: data["id"] as? String ?? "") ?? UUID(),
-                    username: data["username"] as? String ?? "",
-                    email: data["email"] as? String ?? "",
-                    role: User.userRole(rawValue: data["role"] as? String ?? "") ?? .student,
-                    joinedClubIDs: (data["joinedClubIDs"] as? [String] ?? []).compactMap { UUID(uuidString: $0) },
-                    bio: data["bio"] as? String ?? "",
-                    grade: data["grade"] as? Int
-                )
-                
-                print("Setting user data and authentication state...")
-                self.user = user
-                self.username = user.username
-                self.isAuthenticated = true
-                self.isEmailVerified = true
-                self.needsEmailVerification = false
-                print("Sign in complete. isAuthenticated: \(self.isAuthenticated), needsEmailVerification: \(self.needsEmailVerification)")
-                self.objectWillChange.send()
-            } else {
-                print("User data not found in Firestore, creating new user...")
-                // If user data doesn't exist in Firestore, create it
-                let newUser = User(
-                    id: UUID(uuidString: authResult.user.uid) ?? UUID(),
-                    username: self.username,
-                    email: authResult.user.email ?? "",
-                    role: .student
-                )
-                
-                try await db.collection("users").document(authResult.user.uid).setData([
-                    "id": newUser.id.uuidString,
-                    "username": newUser.username,
-                    "email": newUser.email,
-                    "role": newUser.role.rawValue,
-                    "joinedClubIDs": newUser.joinedClubIDs.map { $0.uuidString },
-                    "bio": newUser.bio,
-                    "grade": newUser.grade as Any
-                ])
-                
-                print("Setting new user data and authentication state...")
-                self.user = newUser
-                self.username = newUser.username
-                self.isAuthenticated = true
-                self.isEmailVerified = true
-                self.needsEmailVerification = false
-                print("Sign in complete. isAuthenticated: \(self.isAuthenticated), needsEmailVerification: \(self.needsEmailVerification)")
-                self.objectWillChange.send()
+            print("Setting authentication state...")
+            await MainActor.run {
+                isAuthenticated = true
+                isEmailVerified = true
+                needsEmailVerification = false
+                print("Auth state updated - User: \(String(describing: self.user?.email))")
+                print("Final auth state - isAuthenticated: \(isAuthenticated), isEmailVerified: \(isEmailVerified), needsVerification: \(needsEmailVerification)")
+                objectWillChange.send()
             }
             
         } catch {
             print("Error during sign in: \(error.localizedDescription)")
-            errorMessage = error.localizedDescription
-            self.isAuthenticated = false
-            self.needsEmailVerification = false
-            self.objectWillChange.send()
+            await MainActor.run {
+                errorMessage = error.localizedDescription
+                resetAuthState()
+                objectWillChange.send()
+            }
         }
         
         isLoading = false
+        print("Sign in process completed")
     }
     
     func signOut() {
         do {
             try auth.signOut()
-            self.isAuthenticated = false
-            self.isEmailVerified = false
-            self.needsEmailVerification = false
-            self.user = nil
-            self.username = ""
-            self.objectWillChange.send()
+            resetAuthState()
         } catch {
             errorMessage = "Failed to sign out"
         }
     }
     
-    /// Check if the current user's email is verified
     func checkEmailVerification() async {
-        guard let user = auth.currentUser else { return }
+        guard let user = auth.currentUser else {
+            print("No current user found when checking email verification")
+            return
+        }
         
         do {
-            try await user.reload()
-            self.isEmailVerified = user.isEmailVerified
+            print("Checking email verification for user: \(user.uid)")
+            print("Current verification status: \(user.isEmailVerified)")
             
-            if self.isEmailVerified {
-                // Create user in Firestore only after email verification
-                let newUser = User(
-                    id: UUID(uuidString: user.uid) ?? UUID(),
-                    username: self.username,
-                    email: user.email ?? "",
-                    role: .student
-                )
+            // Force reload the user to get the latest verification status
+            try await user.reload()
+            
+            // Get fresh verification status
+            let isVerified = user.isEmailVerified
+            print("Updated verification status: \(isVerified)")
+            
+            await MainActor.run {
+                isEmailVerified = isVerified
+                isAuthenticated = isVerified
+                needsEmailVerification = !isVerified
                 
-                try await db.collection("users").document(user.uid).setData([
-                    "id": newUser.id.uuidString,
-                    "username": newUser.username,
-                    "email": newUser.email,
-                    "role": newUser.role.rawValue,
-                    "joinedClubIDs": newUser.joinedClubIDs.map { $0.uuidString },
-                    "bio": newUser.bio,
-                    "grade": newUser.grade as Any
-                ])
+                print("""
+                Email verification check completed:
+                - isEmailVerified: \(isEmailVerified)
+                - isAuthenticated: \(isAuthenticated)
+                - needsEmailVerification: \(needsEmailVerification)
+                - currentUser: \(user.email ?? "nil")
+                """)
                 
-                self.isAuthenticated = true
-                self.needsEmailVerification = false
-                await fetchUserData(userId: user.uid)
+                if isVerified {
+                    // If email is verified, fetch user data
+                    Task {
+                        await fetchUserData(userId: user.uid)
+                    }
+                }
+                
                 self.objectWillChange.send()
             }
         } catch {
-            errorMessage = "Failed to check email verification status"
+            print("Error checking email verification: \(error.localizedDescription)")
+            await MainActor.run {
+                errorMessage = "Failed to check email verification status"
+                self.objectWillChange.send()
+            }
         }
     }
     
-    /// Resend verification email
     func resendVerificationEmail() async {
         guard let user = auth.currentUser else { return }
         
@@ -260,8 +266,6 @@ class AuthenticationViewModel: ObservableObject {
             errorMessage = "Failed to send verification email"
         }
     }
-    
-    // MARK: - Password Reset
     
     func resetPassword(email: String) async {
         isLoading = true
@@ -276,4 +280,4 @@ class AuthenticationViewModel: ObservableObject {
         
         isLoading = false
     }
-} 
+}

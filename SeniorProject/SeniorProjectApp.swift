@@ -28,25 +28,33 @@ struct SeniorProjectApp: App {
                     if authViewModel.needsEmailVerification {
                         EmailVerificationView()
                             .environmentObject(authViewModel)
+                            .transition(.opacity)
                     } else {
                         MainTabView()
                             .environmentObject(authViewModel)
+                            .transition(.opacity)
                     }
                 } else {
                     LoginView()
                         .environmentObject(authViewModel)
+                        .transition(.opacity)
                 }
             }
-            .onChange(of: authViewModel.isAuthenticated) { newValue in
-                print("Auth state changed: isAuthenticated = \(newValue)")
+            .id("App_\(authViewModel.isAuthenticated)_\(authViewModel.needsEmailVerification)_\(authViewModel.user?.email ?? "nil")")
+            .animation(.easeInOut, value: authViewModel.isAuthenticated)
+            .animation(.easeInOut, value: authViewModel.needsEmailVerification)
+            .onChange(of: authViewModel.isAuthenticated) { oldValue, newValue in
+                print("App - Auth state changed: \(oldValue) -> \(newValue)")
                 print("Current user: \(String(describing: authViewModel.user))")
                 print("Email verified: \(authViewModel.isEmailVerified)")
                 print("Needs verification: \(authViewModel.needsEmailVerification)")
             }
-            .onChange(of: authViewModel.needsEmailVerification) { newValue in
-                print("Email verification state changed: needsVerification = \(newValue)")
+            .onChange(of: authViewModel.needsEmailVerification) { oldValue, newValue in
+                print("App - Email verification state changed: \(oldValue) -> \(newValue)")
             }
-            .id(authViewModel.isAuthenticated)
+            .onChange(of: authViewModel.user) { oldValue, newValue in
+                print("App - User data changed: \(String(describing: oldValue?.email)) -> \(String(describing: newValue?.email))")
+            }
         }
     }
 }

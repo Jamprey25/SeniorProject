@@ -114,6 +114,17 @@ struct PrimaryButtonStyle: ViewModifier {
     }
 }
 
+struct SecondaryButtonStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .foregroundColor(AppTheme.primary)
+            .padding(.horizontal, AppTheme.spacingLarge)
+            .padding(.vertical, AppTheme.spacingMedium)
+            .background(AppTheme.primary.opacity(0.1))
+            .cornerRadius(AppTheme.cornerRadiusMedium)
+    }
+}
+
 // MARK: - View Extensions
 extension View {
     func cardStyle() -> some View {
@@ -122,5 +133,9 @@ extension View {
     
     func primaryButtonStyle() -> some View {
         modifier(PrimaryButtonStyle())
+    }
+    
+    func secondaryButtonStyle() -> some View {
+        modifier(SecondaryButtonStyle())
     }
 } 

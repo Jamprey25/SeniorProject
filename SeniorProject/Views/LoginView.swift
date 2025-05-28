@@ -9,7 +9,7 @@ struct LoginView: View {
     @State private var isAnimating = false
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
                 // Background gradient
                 AppTheme.backgroundGradient
@@ -83,10 +83,16 @@ struct LoginView: View {
                                     }
                                 }
                             }) {
-                                Text(isSignUp ? "Sign Up" : "Sign In")
-                                    .font(.headline)
+                                if authViewModel.isLoading {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                } else {
+                                    Text(isSignUp ? "Sign Up" : "Sign In")
+                                        .font(.headline)
+                                }
                             }
                             .primaryButtonStyle()
+                            .disabled(authViewModel.isLoading)
                             .padding(.top, AppTheme.spacingMedium)
                             
                             // Toggle Sign In/Up
@@ -109,7 +115,20 @@ struct LoginView: View {
                 }
             }
             .navigationBarHidden(true)
+            .onChange(of: authViewModel.isAuthenticated) { oldValue, newValue in
+                print("LoginView - Auth state changed: \(oldValue) -> \(newValue)")
+                if newValue {
+                    // Clear form fields when successfully authenticated
+                    email = ""
+                    password = ""
+                    username = ""
+                }
+            }
+            .onChange(of: authViewModel.user) { oldValue, newValue in
+                print("LoginView - User changed: \(String(describing: oldValue?.email)) -> \(String(describing: newValue?.email))")
+            }
         }
+        .id("LoginView_\(authViewModel.isAuthenticated)_\(authViewModel.needsEmailVerification)_\(authViewModel.user?.email ?? "nil")")
     }
 }
 
@@ -172,4 +191,4 @@ struct CustomSecureField: View {
 #Preview {
     LoginView()
         .environmentObject(AuthenticationViewModel())
-} 
+}

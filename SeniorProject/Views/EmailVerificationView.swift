@@ -3,6 +3,7 @@ import SwiftUI
 struct EmailVerificationView: View {
     @EnvironmentObject var authViewModel: AuthenticationViewModel
     @State private var isResending = false
+    @State private var isCheckingVerification = false
     
     var body: some View {
         VStack(spacing: AppTheme.spacingLarge) {
@@ -64,14 +65,24 @@ struct EmailVerificationView: View {
                 
                 // Check Verification Button
                 Button(action: {
+                    isCheckingVerification = true
                     Task {
                         await authViewModel.checkEmailVerification()
+                        isCheckingVerification = false
                     }
                 }) {
-                    Text("I've Verified My Email")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(AppTheme.primary)
+                    HStack {
+                        if isCheckingVerification {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        } else {
+                            Image(systemName: "checkmark.circle.fill")
+                        }
+                        Text("I've Verified My Email")
+                    }
                 }
+                .secondaryButtonStyle()
+                .disabled(isCheckingVerification)
                 
                 // Sign Out Button
                 Button(action: {
@@ -86,6 +97,7 @@ struct EmailVerificationView: View {
         }
         .padding()
         .background(AppTheme.backgroundGradient)
+        .ignoresSafeArea()
         .alert("Verification Status", isPresented: .constant(authViewModel.errorMessage != nil)) {
             Button("OK") {
                 authViewModel.errorMessage = nil
@@ -93,6 +105,7 @@ struct EmailVerificationView: View {
         } message: {
             Text(authViewModel.errorMessage ?? "")
         }
+        .id(authViewModel.isEmailVerified) // Force view refresh when verification state changes
     }
 }
 
@@ -120,4 +133,4 @@ struct InstructionRow: View {
 #Preview {
     EmailVerificationView()
         .environmentObject(AuthenticationViewModel())
-} 
+}
