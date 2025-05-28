@@ -1,4 +1,5 @@
 import SwiftUI
+import FirebaseAuth
 
 struct LoginView: View {
     @EnvironmentObject var authViewModel: AuthenticationViewModel
@@ -13,101 +14,149 @@ struct LoginView: View {
             if authViewModel.isAuthenticated {
                 MainTabView()
             } else {
-                NavigationView {
+                NavigationStack {
                     ZStack {
                         // Background gradient
                         AppTheme.backgroundGradient
                             .ignoresSafeArea()
                         
-                        ScrollView {
-                            VStack(spacing: AppTheme.spacingLarge) {
-                                // Logo and App Name
-                                VStack(spacing: AppTheme.spacingSmall) {
-                                    Image(systemName: "person.3.fill")
-                                        .font(.system(size: 60))
-                                        .foregroundColor(AppTheme.primary)
-                                        .padding(.bottom, AppTheme.spacingSmall)
-                                    
-                                    Text("ClubHub")
-                                        .font(.system(size: 40, weight: .bold, design: .rounded))
-                                        .foregroundColor(AppTheme.textPrimary)
-                                }
-                                .padding(.top, 60)
-                                .padding(.bottom, 40)
-                                
-                                // Form Fields
-                                VStack(spacing: AppTheme.spacingMedium) {
-                                    // Username Field (only shown during sign up)
-                                    if isSignUp {
-                                        CustomTextField(
-                                            text: $username,
-                                            placeholder: "Username",
-                                            systemImage: "person.fill"
-                                        )
-                                    }
-                                    
-                                    // Email Field
-                                    CustomTextField(
-                                        text: $email,
-                                        placeholder: "Email",
-                                        systemImage: "envelope.fill"
-                                    )
-                                    
-                                    // Password Field
-                                    CustomSecureField(
-                                        text: $password,
-                                        placeholder: "Password",
-                                        systemImage: "lock.fill"
-                                    )
-                                }
-                                .padding(.horizontal, AppTheme.spacingLarge)
-                                
-                                // Error Message
-                                if let errorMessage = authViewModel.errorMessage {
-                                    Text(errorMessage)
-                                        .foregroundColor(AppTheme.secondary)
-                                        .font(.subheadline)
-                                        .padding(.top, AppTheme.spacingSmall)
-                                }
-                                
-                                // Sign In/Up Button
-                                Button(action: {
-                                    withAnimation(.spring()) {
-                                        if isSignUp {
-                                            authViewModel.signUp(email: email, password: password, username: username)
-                                        } else {
-                                            authViewModel.signIn(email: email, password: password)
-                                        }
-                                    }
-                                }) {
-                                    Text(isSignUp ? "Sign Up" : "Sign In")
-                                        .font(.headline)
-                                }
-                                .primaryButtonStyle()
-                                .padding(.top, AppTheme.spacingMedium)
-                                
-                                // Toggle Sign In/Up
-                                Button(action: {
-                                    withAnimation(.spring()) {
-                                        isSignUp.toggle()
-                                        if !isSignUp {
-                                            username = ""
-                                        }
-                                    }
-                                }) {
-                                    Text(isSignUp ? "Already have an account? Sign In" : "Don't have an account? Sign Up")
-                                        .foregroundColor(AppTheme.primary)
-                                        .font(.subheadline)
-                                }
-                                .padding(.top, AppTheme.spacingMedium)
-                            }
-                            .padding(.bottom, AppTheme.spacingLarge)
+                        if authViewModel.needsEmailVerification {
+                            EmailVerificationView()
+                        } else {
+                            mainContent
                         }
                     }
                     .navigationBarHidden(true)
+                    .onChange(of: authViewModel.isAuthenticated) { oldValue, newValue in
+                        handleAuthStateChange(oldValue: oldValue, newValue: newValue)
+                    }
+                    .onChange(of: authViewModel.user) { oldValue, newValue in
+                        handleUserChange(oldValue: oldValue, newValue: newValue)
+                    }
                 }
+                .id("LoginView_\(authViewModel.isAuthenticated)_\(authViewModel.needsEmailVerification)_\(authViewModel.user?.email ?? "nil")")
             }
         }
+    }
+    
+    private var mainContent: some View {
+        ScrollView {
+            VStack(spacing: AppTheme.spacingLarge) {
+                // Logo and App Name
+                logoSection
+                
+                // Form Fields
+                formFields
+                
+                // Error Message
+                if let errorMessage = authViewModel.errorMessage {
+                    Text(errorMessage)
+                        .foregroundColor(AppTheme.secondary)
+                        .font(.subheadline)
+                        .padding(.top, AppTheme.spacingSmall)
+                }
+                
+                // Sign In/Up Button
+                signInUpButton
+                
+                // Toggle Sign In/Up
+                toggleSignInUpButton
+            }
+            .padding(.bottom, AppTheme.spacingLarge)
+        }
+    }
+    
+    private var logoSection: some View {
+        VStack(spacing: AppTheme.spacingSmall) {
+            Image(systemName: "person.3.fill")
+                .font(.system(size: 60))
+                .foregroundColor(AppTheme.primary)
+                .padding(.bottom, AppTheme.spacingSmall)
+            
+            Text("ClubHub")
+                .font(.system(size: 40, weight: .bold, design: .rounded))
+                .foregroundColor(AppTheme.textPrimary)
+        }
+        .padding(.top, 60)
+        .padding(.bottom, 40)
+    }
+    
+    private var formFields: some View {
+        VStack(spacing: AppTheme.spacingMedium) {
+            if isSignUp {
+                CustomTextField(
+                    text: $username,
+                    placeholder: "Username",
+                    systemImage: "person.fill"
+                )
+            }
+            
+            CustomTextField(
+                text: $email,
+                placeholder: "Email",
+                systemImage: "envelope.fill"
+            )
+            
+            CustomSecureField(
+                text: $password,
+                placeholder: "Password",
+                systemImage: "lock.fill"
+            )
+        }
+        .padding(.horizontal, AppTheme.spacingLarge)
+    }
+    
+    private var signInUpButton: some View {
+        Button {
+            Task {
+                if isSignUp {
+                    await authViewModel.signUp(email: email, password: password, username: username)
+                } else {
+                    await authViewModel.signIn(email: email, password: password)
+                }
+            }
+        } label: {
+            if authViewModel.isLoading {
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+            } else {
+                Text(isSignUp ? "Sign Up" : "Sign In")
+                    .font(.headline)
+            }
+        }
+        .primaryButtonStyle()
+        .disabled(authViewModel.isLoading)
+        .padding(.top, AppTheme.spacingMedium)
+    }
+    
+    private var toggleSignInUpButton: some View {
+        Button {
+            withAnimation(.spring()) {
+                isSignUp.toggle()
+                if !isSignUp {
+                    username = ""
+                }
+            }
+        } label: {
+            Text(isSignUp ? "Already have an account? Sign In" : "Don't have an account? Sign Up")
+                .foregroundColor(AppTheme.primary)
+                .font(.subheadline)
+        }
+        .padding(.top, AppTheme.spacingMedium)
+    }
+    
+    private func handleAuthStateChange(oldValue: Bool, newValue: Bool) {
+        print("LoginView - Auth state changed: \(oldValue) -> \(newValue)")
+        if newValue {
+            // Clear form fields when successfully authenticated
+            email = ""
+            password = ""
+            username = ""
+        }
+    }
+    
+    private func handleUserChange(oldValue: FirebaseAuth.User?, newValue: FirebaseAuth.User?) {
+        print("LoginView - User changed: \(String(describing: oldValue?.email)) -> \(String(describing: newValue?.email))")
     }
 }
 
