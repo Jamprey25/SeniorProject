@@ -88,6 +88,8 @@ class AuthenticationViewModel: ObservableObject {
             try await db.collection("users").document(result.user.uid).setData([
                 "username": username,
                 "email": email,
+                "joinedClubIDs": [],
+                "role": "student",
                 "createdAt": FieldValue.serverTimestamp()
             ])
             

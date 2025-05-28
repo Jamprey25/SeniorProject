@@ -2,8 +2,15 @@ import SwiftUI
 
 struct ClubDetailView: View {
     let club: Club
+    @StateObject private var viewModel = ClubDetailViewModel()
     @State private var selectedTab = 0
+    @State private var isJoining = false
+    @State private var showError = false
+    @State private var errorMessage = ""
+    @State private var isMember = false
     @Environment(\.presentationMode) var presentationMode
+    @EnvironmentObject var authViewModel: AuthenticationViewModel
+    private let clubService = ClubService()
     
     var body: some View {
         ScrollView {
@@ -95,15 +102,24 @@ struct ClubDetailView: View {
                         InfoRow(title: "Category", value: club.category.rawValue)
                         InfoRow(title: "Founded", value: "2024")
                         InfoRow(title: "Members", value: "\(club.memberIDs.count)")
-                       
                     }
                     .padding(AppTheme.spacingMedium)
                     .tag(0)
                     
                     // Members Tab
                     VStack(spacing: AppTheme.spacingMedium) {
-                        ForEach(0..<5) { _ in
-                            MemberRow()
+                        if viewModel.isLoading {
+                            ProgressView()
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        } else if viewModel.members.isEmpty {
+                            Text("No members yet")
+                                .font(.system(size: 16))
+                                .foregroundColor(AppTheme.textSecondary)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        } else {
+                            ForEach(viewModel.members) { member in
+                                MemberRow(member: member)
+                            }
                         }
                     }
                     .padding(AppTheme.spacingMedium)
@@ -126,18 +142,102 @@ struct ClubDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: {
-                    // Handle join/leave club
-                }) {
-                    Text(club.requiresApplicationToJoin ? "Apply" : "Join")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, AppTheme.spacingMedium)
-                        .padding(.vertical, AppTheme.spacingSmall)
-                        .background(AppTheme.primaryGradient)
-                        .cornerRadius(AppTheme.cornerRadiusMedium)
+                if isMember {
+                    Button(action: {
+                        Task {
+                            await handleLeaveClub()
+                        }
+                    }) {
+                        Text("Leave")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, AppTheme.spacingMedium)
+                            .padding(.vertical, AppTheme.spacingSmall)
+                            .background(AppTheme.secondary)
+                            .cornerRadius(AppTheme.cornerRadiusMedium)
+                    }
+                } else {
+                    Button(action: {
+                        Task {
+                            await handleJoinClub()
+                        }
+                    }) {
+                        if isJoining {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        } else {
+                            Text(club.requiresApplicationToJoin ? "Apply" : "Join")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, AppTheme.spacingMedium)
+                                .padding(.vertical, AppTheme.spacingSmall)
+                                .background(AppTheme.primaryGradient)
+                                .cornerRadius(AppTheme.cornerRadiusMedium)
+                        }
+                    }
+                    .disabled(isJoining)
                 }
             }
+        }
+        .alert("Error", isPresented: $showError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(errorMessage)
+        }
+        .task {
+            await viewModel.loadMembers(for: club.id.uuidString)
+            await checkMembershipStatus()
+        }
+    }
+    
+    private func checkMembershipStatus() async {
+        guard let currentUser = authViewModel.user else { return }
+        
+        do {
+            isMember = try await clubService.isUserMemberOfClub(userId: currentUser.uid, clubId: club.id.uuidString)
+        } catch {
+            errorMessage = error.localizedDescription
+            showError = true
+        }
+    }
+    
+    private func handleJoinClub() async {
+        guard let currentUser = authViewModel.user else { return }
+        
+        isJoining = true
+        defer { isJoining = false }
+        
+        do {
+            if club.requiresApplicationToJoin {
+                // TODO: Implement application process
+                errorMessage = "Application process not implemented yet"
+                showError = true
+            } else {
+                try await clubService.joinClub(userId: currentUser.uid, clubId: club.id.uuidString)
+                isMember = true
+                // Reload members after joining
+                await viewModel.loadMembers(for: club.id.uuidString)
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+            showError = true
+        }
+    }
+    
+    private func handleLeaveClub() async {
+        guard let currentUser = authViewModel.user else { return }
+        
+        isJoining = true
+        defer { isJoining = false }
+        
+        do {
+            try await clubService.leaveClub(userId: currentUser.uid, clubId: club.id.uuidString)
+            isMember = false
+            // Reload members after leaving
+            await viewModel.loadMembers(for: club.id.uuidString)
+        } catch {
+            errorMessage = error.localizedDescription
+            showError = true
         }
     }
 }
@@ -198,6 +298,8 @@ struct InfoRow: View {
 
 // Member Row
 struct MemberRow: View {
+    let member: User
+    
     var body: some View {
         HStack(spacing: AppTheme.spacingMedium) {
             Circle()
@@ -209,11 +311,11 @@ struct MemberRow: View {
                 )
             
             VStack(alignment: .leading, spacing: 4) {
-                Text("John Doe")
+                Text(member.username)
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(AppTheme.textPrimary)
                 
-                Text("President")
+                Text(member.role.rawValue.capitalized)
                     .font(.system(size: 14))
                     .foregroundColor(AppTheme.textSecondary)
             }

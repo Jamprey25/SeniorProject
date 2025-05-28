@@ -2,8 +2,12 @@ import SwiftUI
 
 struct MyClubsView: View {
     @State private var selectedTab = 0
-    @State private var joinedClubs = MockData.clubs
-    @State private var pendingClubs = MockData.clubs
+    @State private var joinedClubs: [Club] = []
+    @State private var pendingClubs: [Club] = []
+    @State private var isLoading = false
+    @State private var errorMessage: String?
+    @EnvironmentObject var authViewModel: AuthenticationViewModel
+    private let clubService = ClubService()
     
     var body: some View {
         NavigationView {
@@ -20,25 +24,45 @@ struct MyClubsView: View {
                 TabView(selection: $selectedTab) {
                     // Joined Clubs
                     ScrollView {
-                        LazyVStack(spacing: AppTheme.spacingMedium) {
-                            ForEach(joinedClubs) { club in
-                                NavigationLink(destination: ClubDetailView(club: club)) {
-                                    JoinedClubCard(club: club)
+                        if isLoading {
+                            ProgressView()
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        } else if joinedClubs.isEmpty {
+                            Text("You haven't joined any clubs yet")
+                                .font(.system(size: 16))
+                                .foregroundColor(AppTheme.textSecondary)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        } else {
+                            LazyVStack(spacing: AppTheme.spacingMedium) {
+                                ForEach(joinedClubs) { club in
+                                    NavigationLink(destination: ClubDetailView(club: club)) {
+                                        JoinedClubCard(club: club)
+                                    }
                                 }
                             }
+                            .padding(AppTheme.spacingMedium)
                         }
-                        .padding(AppTheme.spacingMedium)
                     }
                     .tag(0)
                     
                     // Pending Requests
                     ScrollView {
-                        LazyVStack(spacing: AppTheme.spacingMedium) {
-                            ForEach(pendingClubs) { club in
-                                PendingClubCard(club: club)
+                        if isLoading {
+                            ProgressView()
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        } else if pendingClubs.isEmpty {
+                            Text("No pending requests")
+                                .font(.system(size: 16))
+                                .foregroundColor(AppTheme.textSecondary)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        } else {
+                            LazyVStack(spacing: AppTheme.spacingMedium) {
+                                ForEach(pendingClubs) { club in
+                                    PendingClubCard(club: club)
+                                }
                             }
+                            .padding(AppTheme.spacingMedium)
                         }
-                        .padding(AppTheme.spacingMedium)
                     }
                     .tag(1)
                 }
@@ -48,7 +72,35 @@ struct MyClubsView: View {
             .navigationTitle("My Clubs")
             .navigationBarTitleDisplayMode(.large)
         }
-        .id("MyClubsView") // Add a stable ID to maintain state
+        .task {
+            await loadUserClubs()
+        }
+    }
+    
+    private func loadUserClubs() async {
+        guard let currentUser = authViewModel.user else { return }
+        
+        isLoading = true
+        defer { isLoading = false }
+        
+        do {
+            let joinedClubIds = try await clubService.getUserClubs(userId: currentUser.uid)
+            var loadedClubs: [Club] = []
+            
+            for clubId in joinedClubIds {
+                if let club = try await clubService.getClub(clubId: clubId) {
+                    loadedClubs.append(club)
+                }
+            }
+            
+            await MainActor.run {
+                self.joinedClubs = loadedClubs
+            }
+        } catch {
+            await MainActor.run {
+                self.errorMessage = error.localizedDescription
+            }
+        }
     }
 }
 
