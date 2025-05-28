@@ -8,6 +8,8 @@ class AuthenticationViewModel: ObservableObject {
     @Published var isAuthenticated = false
     @Published var errorMessage: String?
     @Published var username: String = ""
+    @Published var needsEmailVerification = false
+    @Published var isLoading = false
     
     private var handle: AuthStateDidChangeListenerHandle?
     private let db = Firestore.firestore()
@@ -16,11 +18,20 @@ class AuthenticationViewModel: ObservableObject {
         handle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
             DispatchQueue.main.async {
                 print("Auth state changed - User: \(String(describing: user))")
-                self?.isAuthenticated = user != nil
-                self?.user = user
                 if let user = user {
-                    self?.fetchUserData(userId: user.uid)
+                    if !user.isEmailVerified {
+                        self?.needsEmailVerification = true
+                        self?.isAuthenticated = false
+                    } else {
+                        self?.needsEmailVerification = false
+                        self?.isAuthenticated = true
+                        self?.fetchUserData(userId: user.uid)
+                    }
+                } else {
+                    self?.isAuthenticated = false
+                    self?.needsEmailVerification = false
                 }
+                self?.user = user
                 print("isAuthenticated set to: \(self?.isAuthenticated ?? false)")
             }
         }
@@ -28,8 +39,13 @@ class AuthenticationViewModel: ObservableObject {
     
     private func fetchUserData(userId: String) {
         db.collection("users").document(userId).getDocument { [weak self] document, error in
-            if let document = document, document.exists {
-                self?.username = document.data()?["username"] as? String ?? ""
+            DispatchQueue.main.async {
+                if let document = document, document.exists {
+                    self?.username = document.data()?["username"] as? String ?? ""
+                    print("Fetched username: \(self?.username ?? "none")")
+                } else {
+                    print("No user data found")
+                }
             }
         }
     }
@@ -40,41 +56,86 @@ class AuthenticationViewModel: ObservableObject {
         }
     }
     
-    func signIn(email: String, password: String) {
+    func signIn(email: String, password: String) async {
         print("Attempting to sign in with email: \(email)")
-        Auth.auth().signIn(withEmail: email, password: password) { [weak self] result, error in
+        isLoading = true
+        defer { isLoading = false }
+        
+        do {
+            let result = try await Auth.auth().signIn(withEmail: email, password: password)
             DispatchQueue.main.async {
-                if let error = error {
-                    print("Sign in error: \(error.localizedDescription)")
-                    self?.errorMessage = error.localizedDescription
-                } else {
-                    print("Sign in successful")
-                    self?.errorMessage = nil
+                print("Sign in successful")
+                self.errorMessage = nil
+                // Fetch user data after successful sign in
+                self.fetchUserData(userId: result.user.uid)
+            }
+        } catch {
+            DispatchQueue.main.async {
+                print("Sign in error: \(error.localizedDescription)")
+                self.errorMessage = error.localizedDescription
+            }
+        }
+    }
+    
+    func signUp(email: String, password: String, username: String) async {
+        print("Attempting to sign up with email: \(email)")
+        isLoading = true
+        defer { isLoading = false }
+        
+        do {
+            let result = try await Auth.auth().createUser(withEmail: email, password: password)
+            // Store username in Firestore
+            try await db.collection("users").document(result.user.uid).setData([
+                "username": username,
+                "email": email,
+                "createdAt": FieldValue.serverTimestamp()
+            ])
+            
+            // Send verification email
+            try await result.user.sendEmailVerification()
+            DispatchQueue.main.async {
+                print("Verification email sent successfully")
+                self.needsEmailVerification = true
+                self.errorMessage = nil
+            }
+        } catch {
+            DispatchQueue.main.async {
+                print("Sign up error: \(error.localizedDescription)")
+                self.errorMessage = error.localizedDescription
+            }
+        }
+    }
+    
+    func resendVerificationEmail() {
+        if let user = Auth.auth().currentUser {
+            user.sendEmailVerification { [weak self] error in
+                DispatchQueue.main.async {
+                    if let error = error {
+                        print("Error resending verification email: \(error.localizedDescription)")
+                        self?.errorMessage = "Error resending verification email"
+                    } else {
+                        print("Verification email resent successfully")
+                        self?.errorMessage = "Verification email sent. Please check your inbox."
+                    }
                 }
             }
         }
     }
     
-    func signUp(email: String, password: String, username: String) {
-        print("Attempting to sign up with email: \(email)")
-        Auth.auth().createUser(withEmail: email, password: password) { [weak self] result, error in
-            DispatchQueue.main.async {
+    func checkEmailVerification() {
+        if let user = Auth.auth().currentUser {
+            user.reload { [weak self] error in
                 if let error = error {
-                    print("Sign up error: \(error.localizedDescription)")
-                    self?.errorMessage = error.localizedDescription
-                } else if let user = result?.user {
-                    // Store additional user data in Firestore
-                    self?.db.collection("users").document(user.uid).setData([
-                        "username": username,
-                        "email": email
-                    ]) { error in
-                        if let error = error {
-                            print("Error saving user data: \(error.localizedDescription)")
-                            self?.errorMessage = "Error saving user data"
-                        } else {
-                            print("Sign up successful")
-                            self?.errorMessage = nil
-                        }
+                    print("Error reloading user: \(error.localizedDescription)")
+                    return
+                }
+                
+                if user.isEmailVerified {
+                    // Fetch user data after verification
+                    self?.fetchUserData(userId: user.uid)
+                    DispatchQueue.main.async {
+                        self?.needsEmailVerification = false
+                        self?.isAuthenticated = true
                     }
                 }
             }
