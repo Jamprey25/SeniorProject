@@ -35,7 +35,11 @@ struct MyClubsView: View {
                         } else {
                             LazyVStack(spacing: AppTheme.spacingMedium) {
                                 ForEach(joinedClubs) { club in
-                                    NavigationLink(destination: ClubDetailView(club: club)) {
+                                    NavigationLink(destination: ClubDetailView(club: club, onMembershipChanged: {
+                                        Task {
+                                            await loadUserClubs()
+                                        }
+                                    })) {
                                         JoinedClubCard(club: club)
                                     }
                                 }
@@ -44,6 +48,9 @@ struct MyClubsView: View {
                         }
                     }
                     .tag(0)
+                    .refreshable {
+                        await loadUserClubs()
+                    }
                     
                     // Pending Requests
                     ScrollView {

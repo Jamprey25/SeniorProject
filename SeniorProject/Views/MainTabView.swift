@@ -11,38 +11,53 @@ import SwiftUI
 struct MainTabView: View {
     @State private var selectedTab = 0
     @State private var isFABExpanded = false
+    @State private var showCreateClub = false
     @EnvironmentObject var authViewModel: AuthenticationViewModel
     
     var body: some View {
-        TabView(selection: $selectedTab) {
-            FeedView()
-                .tabItem {
-                    Label("Feed", systemImage: "newspaper")
-                }
-                .tag(0)
+        ZStack(alignment: .bottom) {
+            TabView(selection: $selectedTab) {
+                FeedView()
+                    .tabItem {
+                        Label("Feed", systemImage: "newspaper")
+                    }
+                    .tag(0)
+                
+                ExploreView()
+                    .tabItem {
+                        Label("Explore", systemImage: "magnifyingglass")
+                    }
+                    .tag(1)
+                
+                MyClubsView()
+                    .tabItem {
+                        Label("My Clubs", systemImage: "person.3")
+                    }
+                    .tag(2)
+                
+                ProfileView()
+                    .tabItem {
+                        Label("Profile", systemImage: "person.circle")
+                    }
+                    .tag(3)
+            }
             
-            ExploreView()
-                .tabItem {
-                    Label("Explore", systemImage: "magnifyingglass")
+            // FAB positioned between Explore and My Clubs
+            FloatingActionButton(
+                isExpanded: $isFABExpanded,
+                onJoinClub: {
+                    selectedTab = 1 // Switch to Explore tab
+                    isFABExpanded = false
+                },
+                onCreateClub: {
+                    showCreateClub = true
+                    isFABExpanded = false
                 }
-                .tag(1)
-            
-            MyClubsView()
-                .tabItem {
-                    Label("My Clubs", systemImage: "person.3")
-                }
-                .tag(2)
-            
-            ProfileView()
-                .tabItem {
-                    Label("Profile", systemImage: "person.circle")
-                }
-                .tag(3)
+            )
+            .offset(y: -35) // Move up to position between tabs
         }
-        .overlay(alignment: .bottom) {
-           
-            FloatingActionButton(isExpanded: $isFABExpanded)
-                .padding(.bottom, 80)
+        .sheet(isPresented: $showCreateClub) {
+            CreateClubView()
         }
     }
 }
@@ -50,29 +65,28 @@ struct MainTabView: View {
 
 struct FloatingActionButton: View {
     @Binding var isExpanded: Bool
+    let onJoinClub: () -> Void
+    let onCreateClub: () -> Void
     
     var body: some View {
         ZStack {
-       
             if isExpanded {
                 VStack(spacing: AppTheme.spacingMedium) {
-                    FABMenuItem(
-                        title: "Create Club",
-                        icon: "plus.circle.fill",
-                        color: AppTheme.primary
-                    )
+                    Button(action: onCreateClub) {
+                        FABMenuItem(
+                            title: "Create Club",
+                            icon: "plus.circle.fill",
+                            color: AppTheme.primary
+                        )
+                    }
                     
-                    FABMenuItem(
-                        title: "Join Club",
-                        icon: "person.badge.plus.fill",
-                        color: AppTheme.secondary
-                    )
-                    
-                    FABMenuItem(
-                        title: "Share",
-                        icon: "square.and.arrow.up.fill",
-                        color: AppTheme.accent
-                    )
+                    Button(action: onJoinClub) {
+                        FABMenuItem(
+                            title: "Join Club",
+                            icon: "person.badge.plus.fill",
+                            color: AppTheme.secondary
+                        )
+                    }
                 }
                 .padding(.bottom, AppTheme.spacingLarge)
                 .transition(.scale.combined(with: .opacity))

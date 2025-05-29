@@ -11,6 +11,7 @@ struct ClubDetailView: View {
     @Environment(\.presentationMode) var presentationMode
     @EnvironmentObject var authViewModel: AuthenticationViewModel
     private let clubService = ClubService()
+    var onMembershipChanged: (() -> Void)?
     
     var body: some View {
         ScrollView {
@@ -217,6 +218,7 @@ struct ClubDetailView: View {
                 isMember = true
                 // Reload members after joining
                 await viewModel.loadMembers(for: club.id.uuidString)
+                onMembershipChanged?()
             }
         } catch {
             errorMessage = error.localizedDescription
@@ -235,6 +237,7 @@ struct ClubDetailView: View {
             isMember = false
             // Reload members after leaving
             await viewModel.loadMembers(for: club.id.uuidString)
+            onMembershipChanged?()
         } catch {
             errorMessage = error.localizedDescription
             showError = true
