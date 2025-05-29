@@ -1,9 +1,11 @@
 import SwiftUI
 
 struct ExploreView: View {
+    @EnvironmentObject var authViewModel: AuthenticationViewModel
     @State private var searchText = ""
     @State private var selectedCategory: Club.ClubCategory?
     @State private var clubs = MockData.clubs
+    @State private var showingCreateClub = false
     
     var filteredClubs: [Club] {
         clubs.filter { club in
@@ -18,58 +20,38 @@ struct ExploreView: View {
     }
     
     var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(spacing: AppTheme.spacingLarge) {
-                    // Search Bar
-                    SearchBar(text: $searchText)
-                        .padding(.horizontal, AppTheme.spacingMedium)
+        NavigationStack {
+            VStack {
+                // Search Bar
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(.gray)
                     
-                    // Category Filter
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: AppTheme.spacingSmall) {
-                            CategoryFilterButton(
-                                title: "All",
-                                isSelected: selectedCategory == nil
-                            ) {
-                                selectedCategory = nil
-                            }
-                            
-                            ForEach(Club.ClubCategory.allCases, id: \.self) { category in
-                                CategoryFilterButton(
-                                    title: category.rawValue,
-                                    isSelected: selectedCategory == category
-                                ) {
-                                    selectedCategory = category
-                                }
-                            }
-                        }
-                        .padding(.horizontal, AppTheme.spacingMedium)
-                    }
-                    
-                    // Clubs Grid
-                    LazyVGrid(
-                        columns: [
-                            GridItem(.flexible(), spacing: AppTheme.spacingMedium),
-                            GridItem(.flexible(), spacing: AppTheme.spacingMedium)
-                        ],
-                        spacing: AppTheme.spacingMedium
-                    ) {
-                        ForEach(filteredClubs) { club in
-                            NavigationLink(destination: ClubDetailView(club: club)) {
-                                ClubCard(club: club)
-                            }
-                        }
-                    }
-                    .padding(.horizontal, AppTheme.spacingMedium)
+                    TextField("Search clubs...", text: $searchText)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
                 }
-                .padding(.vertical, AppTheme.spacingMedium)
+                .padding()
+                
+                // Club List
+                List {
+                    Text("Explore View")
+                }
             }
-            .background(AppTheme.background)
             .navigationTitle("Explore")
-            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        showingCreateClub = true
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .foregroundColor(AppTheme.primary)
+                    }
+                }
+            }
+            .sheet(isPresented: $showingCreateClub) {
+                CreateClubView()
+            }
         }
-        .id("ExploreView") // Add a stable ID to maintain state
     }
 }
 
@@ -219,4 +201,5 @@ struct ClubCard: View {
 
 #Preview {
     ExploreView()
+        .environmentObject(AuthenticationViewModel())
 } 

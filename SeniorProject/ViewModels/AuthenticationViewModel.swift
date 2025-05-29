@@ -40,9 +40,26 @@ class AuthenticationViewModel: ObservableObject {
     private func fetchUserData(userId: String) {
         db.collection("users").document(userId).getDocument { [weak self] document, error in
             DispatchQueue.main.async {
-                if let document = document, document.exists {
-                    self?.username = document.data()?["username"] as? String ?? ""
+                if let document = document, document.exists,
+                   let data = document.data() {
+                    let role = User.userRole(rawValue: data["role"] as? String ?? "student") ?? .student
+                    self?.username = data["username"] as? String ?? ""
                     print("Fetched username: \(self?.username ?? "none")")
+                    
+                    // Create user object with role
+                    let user = User(
+                        id: UUID(uuidString: userId) ?? UUID(),
+                        username: self?.username ?? "",
+                        email: data["email"] as? String ?? "",
+                        schoolID: UUID(uuidString: data["schoolID"] as? String ?? "") ?? UUID(),
+                        role: role,
+                        joinedClubIDs: [],
+                        bio: data["bio"] as? String ?? "",
+                        grade: data["grade"] as? Int
+                    )
+                    
+                    // Store user in environment
+                    self?.currentUser = user
                 } else {
                     print("No user data found")
                 }
@@ -84,14 +101,28 @@ class AuthenticationViewModel: ObservableObject {
         
         do {
             let result = try await Auth.auth().createUser(withEmail: email, password: password)
-            // Store username in Firestore
-            try await db.collection("users").document(result.user.uid).setData([
-                "username": username,
-                "email": email,
-                "joinedClubIDs": [],
-                "role": "student",
-                "createdAt": FieldValue.serverTimestamp()
-            ])
+            
+            // Check if this is an admin account
+            if email == "admin@clubhub.com" {
+                try await RoleManagementService.shared.createAdminAccount(email: email)
+            } else {
+                // Create regular user with role management
+                let user = try await RoleManagementService.shared.createNewUser(
+                    username: username,
+                    email: email,
+                    schoolID: UUID() // TODO: Get actual school ID from school selection
+                )
+                
+                // Store user data in Firestore
+                try await db.collection("users").document(result.user.uid).setData([
+                    "username": username,
+                    "email": email,
+                    "role": user.role.rawValue,
+                    "joinedClubIDs": [],
+                    "bio": "",
+                    "createdAt": FieldValue.serverTimestamp()
+                ])
+            }
             
             // Send verification email
             try await result.user.sendEmailVerification()
@@ -147,10 +178,18 @@ class AuthenticationViewModel: ObservableObject {
     func signOut() {
         do {
             try Auth.auth().signOut()
-            print("Sign out successful")
+            // Reset all state
+            self.user = nil
+            self.currentUser = nil
+            self.isAuthenticated = false
+            self.needsEmailVerification = false
+            self.username = ""
+            self.errorMessage = ""
         } catch {
-            print("Sign out error: \(error.localizedDescription)")
-            errorMessage = error.localizedDescription
+            self.errorMessage = error.localizedDescription
         }
     }
+    
+    // Add currentUser property
+    @Published var currentUser: User?
 } 
