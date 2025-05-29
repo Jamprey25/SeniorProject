@@ -153,4 +153,47 @@ struct Club: Identifiable, Codable {
             "requiresApplication": requiresApplicationToJoin
         ]
     }
+    
+    // MARK: - Permission Methods
+    
+    func getUserPermissions(for userID: UUID) -> [ClubPermission] {
+        guard let leadershipRole = leadershipRoles.first(where: { $0.userID == userID }) else {
+            return []
+        }
+        return leadershipRole.permissions.permissions
+    }
+    
+    func canUserPerformAction(userID: UUID, action: ClubPermission) -> Bool {
+        guard let leadershipRole = leadershipRoles.first(where: { $0.userID == userID }) else {
+            return false
+        }
+        return leadershipRole.hasPermission(action)
+    }
+    
+    func isUserLeader(userID: UUID) -> Bool {
+        return leadershipRoles.contains { $0.userID == userID }
+    }
+    
+    func isUserFounder(userID: UUID) -> Bool {
+        // Assuming the first leadership role is the founder
+        return leadershipRoles.first?.userID == userID
+    }
+    
+    // MARK: - Leadership Role Management
+    
+    mutating func assignLeadershipRole(userID: UUID, role: String, permissions: [ClubPermission]) {
+        let leadershipPermissions = LeadershipPermissions(permissions: permissions)
+        let newRole = ClubLeadershipRole(userID: userID, role: role, permissions: leadershipPermissions)
+        leadershipRoles.append(newRole)
+    }
+    
+    mutating func updateLeadershipPermissions(userID: UUID, permissions: [ClubPermission]) {
+        if let index = leadershipRoles.firstIndex(where: { $0.userID == userID }) {
+            leadershipRoles[index].permissions = LeadershipPermissions(permissions: permissions)
+        }
+    }
+    
+    mutating func removeLeadershipRole(userID: UUID) {
+        leadershipRoles.removeAll { $0.userID == userID }
+    }
 }

@@ -95,4 +95,26 @@ class User: ObservableObject, Identifiable {
             "joinedClubs": joinedClubIDs.count
         ]
     }
+    
+    // MARK: - Permission Methods
+    
+    func canCreateClub() -> Bool {
+        return PermissionManager.shared.canUserCreateClub(user: self)
+    }
+    
+    func canManageClub(_ club: Club) -> Bool {
+        return PermissionManager.shared.canUserManageClub(user: self, club: club)
+    }
+    
+    func hasClubPermission(_ permission: ClubPermission, in club: Club) -> Bool {
+        return PermissionManager.shared.canUserPerformAction(user: self, permission: permission, club: club)
+    }
+    
+    func hasSystemPermission(_ permission: SystemPermission) -> Bool {
+        return PermissionManager.shared.hasSystemPermission(user: self, permission: permission)
+    }
+    
+    func getPermissionsInClub(_ club: Club) -> [ClubPermission] {
+        return PermissionManager.shared.getUserPermissionsInClub(user: self, club: club)
+    }
 }
