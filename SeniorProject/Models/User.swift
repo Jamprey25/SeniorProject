@@ -6,8 +6,10 @@
 //
 
 import Foundation
-class User: ObservableObject, Identifiable{
-    let id : UUID
+import FirebaseFirestore
+
+class User: ObservableObject, Identifiable {
+    let id: UUID
     @Published var username: String
     @Published var email: String
     @Published var schoolID: UUID
@@ -17,25 +19,22 @@ class User: ObservableObject, Identifiable{
     @Published var bio: String
     @Published var grade: Int?
     
-    
+    private let clubService = ClubService()
     
     enum userRole: String {
         case student
         case clubHead
         case administrator
-        
-        
-        
     }
     
     init(id: UUID = UUID(),
-    username: String,
-    email: String,
-    schoolID: UUID,
-    role: userRole = .student,
-    joinedClubIDs : [UUID] = [],
-    bio: String = "",
-    grade: Int? = nil) {
+         username: String,
+         email: String,
+         schoolID: UUID,
+         role: userRole = .student,
+         joinedClubIDs: [UUID] = [],
+         bio: String = "",
+         grade: Int? = nil) {
         self.id = id
         self.username = username
         self.email = email
@@ -48,49 +47,44 @@ class User: ObservableObject, Identifiable{
     
     //created methods later 
     
-    
-    
-   
-    func joinClub(clubID: UUID) {
+    func joinClub(clubID: UUID) async throws {
         if !joinedClubIDs.contains(clubID) {
+            try await clubService.joinClub(userId: id.uuidString, clubId: clubID.uuidString)
             joinedClubIDs.append(clubID)
         }
     }
     
-   
-    func leaveClub(clubID: UUID) {
-        joinedClubIDs.removeAll { $0 == clubID }
+    func leaveClub(clubID: UUID) async throws {
+        if joinedClubIDs.contains(clubID) {
+            try await clubService.leaveClub(userId: id.uuidString, clubId: clubID.uuidString)
+            joinedClubIDs.removeAll { $0 == clubID }
+        }
     }
     
-   
     func isMemberOfClub(clubID: UUID) -> Bool {
         return joinedClubIDs.contains(clubID)
     }
+    
     func isClubHead() -> Bool {
         return role == .clubHead
     }
     
-   
     func isAdministrator() -> Bool {
         return role == .administrator
     }
     
-   
     func updateRole(newRole: userRole) {
         self.role = newRole
     }
     
-   
     func updateBio(newBio: String) {
         self.bio = newBio
     }
-    
     
     func updateGrade(newGrade: Int?) {
         self.grade = newGrade
     }
     
-   
     func getProfileInfo() -> [String: Any] {
         return [
             "username": username,
