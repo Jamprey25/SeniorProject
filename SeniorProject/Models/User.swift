@@ -96,7 +96,7 @@ class User: ObservableObject, Identifiable {
         ]
     }
     
-    // MARK: - Permission Methods
+   
     
     func canCreateClub() -> Bool {
         return PermissionManager.shared.canUserCreateClub(user: self)

@@ -10,33 +10,27 @@ struct LoginView: View {
     @State private var isAnimating = false
     
     var body: some View {
-        Group {
-            if authViewModel.isAuthenticated {
-                MainTabView()
-            } else {
-                NavigationStack {
-                    ZStack {
-                        // Background gradient
-                        AppTheme.backgroundGradient
-                            .ignoresSafeArea()
-                        
-                        if authViewModel.needsEmailVerification {
-                            EmailVerificationView()
-                        } else {
-                            mainContent
-                        }
-                    }
-                    .navigationBarHidden(true)
-                    .onChange(of: authViewModel.isAuthenticated) { oldValue, newValue in
-                        handleAuthStateChange(oldValue: oldValue, newValue: newValue)
-                    }
-                    .onChange(of: authViewModel.user) { oldValue, newValue in
-                        handleUserChange(oldValue: oldValue, newValue: newValue)
-                    }
+        NavigationStack {
+            ZStack {
+                // Background gradient
+                AppTheme.backgroundGradient
+                    .ignoresSafeArea()
+                
+                if authViewModel.needsEmailVerification {
+                    EmailVerificationView()
+                } else {
+                    mainContent
                 }
-                .id("LoginView_\(authViewModel.isAuthenticated)_\(authViewModel.needsEmailVerification)_\(authViewModel.user?.email ?? "nil")")
+            }
+            .navigationBarHidden(true)
+            .onChange(of: authViewModel.isAuthenticated) { oldValue, newValue in
+                handleAuthStateChange(oldValue: oldValue, newValue: newValue)
+            }
+            .onChange(of: authViewModel.user) { oldValue, newValue in
+                handleUserChange(oldValue: oldValue, newValue: newValue)
             }
         }
+        .id("LoginView_\(authViewModel.isAuthenticated)_\(authViewModel.needsEmailVerification)_\(authViewModel.user?.email ?? "nil")")
     }
     
     private var mainContent: some View {

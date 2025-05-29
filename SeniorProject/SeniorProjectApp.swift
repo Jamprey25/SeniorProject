@@ -24,7 +24,7 @@ struct SeniorProjectApp: App {
     var body: some Scene {
         WindowGroup {
             if authViewModel.isAuthenticated {
-                MainTabView()
+                RootView()
                     .environmentObject(authViewModel)
             } else {
                 LoginView()
