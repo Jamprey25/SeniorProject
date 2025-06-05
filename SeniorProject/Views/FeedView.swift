@@ -33,27 +33,56 @@ struct FeedView: View {
                     .listRowInsets(EdgeInsets())
                 }
                 
-                // Recent Activity Section
-                Section(header: Text("Recent Activity")) {
-                    ForEach(1...5, id: \.self) { _ in
-                        HStack {
-                            Circle()
-                                .fill(AppTheme.primary.opacity(0.1))
-                                .frame(width: 40, height: 40)
-                                .overlay(
-                                    Image(systemName: "bell.fill")
-                                        .foregroundColor(AppTheme.primary)
-                                )
-                            
-                            VStack(alignment: .leading) {
-                                Text("Club Announcement")
-                                    .font(.headline)
-                                Text("New event scheduled for next week")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
+                // Upcoming Events Section
+                Section(header: Text("Upcoming Events")) {
+                    ForEach(MockData.events.sorted { $0.startTime < $1.startTime }) { event in
+                        NavigationLink(destination: ClubDetailView(club: MockData.clubs.first(where: { $0.id == event.clubID }) ?? MockData.clubs[0])) {
+                            HStack {
+                                Circle()
+                                    .fill(AppTheme.primary.opacity(0.1))
+                                    .frame(width: 40, height: 40)
+                                    .overlay(
+                                        Image(systemName: "calendar")
+                                            .foregroundColor(AppTheme.primary)
+                                    )
+                                
+                                VStack(alignment: .leading) {
+                                    Text(event.name)
+                                        .font(.headline)
+                                    Text(event.startTime, style: .date)
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                }
                             }
+                            .padding(.vertical, 8)
                         }
-                        .padding(.vertical, 8)
+                    }
+                }
+                
+                // Recent Announcements Section
+                Section(header: Text("Recent Announcements")) {
+                    ForEach(MockData.announcements.sorted { $0.creationDate > $1.creationDate }) { announcement in
+                        NavigationLink(destination: ClubDetailView(club: MockData.clubs.first(where: { $0.id == announcement.clubID }) ?? MockData.clubs[0])) {
+                            HStack {
+                                Circle()
+                                    .fill(AppTheme.primary.opacity(0.1))
+                                    .frame(width: 40, height: 40)
+                                    .overlay(
+                                        Image(systemName: announcement.isPinned ? "pin.fill" : "bell.fill")
+                                            .foregroundColor(AppTheme.primary)
+                                    )
+                                
+                                VStack(alignment: .leading) {
+                                    Text(announcement.title)
+                                        .font(.headline)
+                                    Text(announcement.content)
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                        .lineLimit(2)
+                                }
+                            }
+                            .padding(.vertical, 8)
+                        }
                     }
                 }
             }

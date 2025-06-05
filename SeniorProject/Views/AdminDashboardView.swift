@@ -15,7 +15,7 @@ struct AdminDashboardView: View {
                             .history,
                             .schoolOverview,
                             .settings], id: \.self) { tab in
-                        TabButton(title: tabTitle(for: tab),
+                        AdminTabButton(title: tabTitle(for: tab),
                                 isSelected: viewModel.selectedTab == tab) {
                             viewModel.selectedTab = tab
                         }
@@ -67,7 +67,7 @@ struct AdminDashboardView: View {
     }
 }
 
-struct TabButton: View {
+struct AdminTabButton: View {
     let title: String
     let isSelected: Bool
     let action: () -> Void

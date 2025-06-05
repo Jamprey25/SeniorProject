@@ -28,10 +28,22 @@ struct MyClubsView: View {
                             ProgressView()
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                         } else if joinedClubs.isEmpty {
-                            Text("You haven't joined any clubs yet")
-                                .font(.system(size: 16))
-                                .foregroundColor(AppTheme.textSecondary)
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            VStack(spacing: AppTheme.spacingMedium) {
+                                Text("You haven't joined any clubs yet")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(AppTheme.textSecondary)
+                                
+                                NavigationLink(destination: ExploreView()) {
+                                    Text("Explore Clubs")
+                                        .font(.system(size: 16, weight: .medium))
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, AppTheme.spacingMedium)
+                                        .padding(.vertical, AppTheme.spacingSmall)
+                                        .background(AppTheme.primaryGradient)
+                                        .cornerRadius(AppTheme.cornerRadiusMedium)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
                         } else {
                             LazyVStack(spacing: AppTheme.spacingMedium) {
                                 ForEach(joinedClubs) { club in
@@ -78,6 +90,15 @@ struct MyClubsView: View {
             .background(AppTheme.background)
             .navigationTitle("My Clubs")
             .navigationBarTitleDisplayMode(.large)
+            .alert("Error", isPresented: .constant(errorMessage != nil)) {
+                Button("OK") {
+                    errorMessage = nil
+                }
+            } message: {
+                if let errorMessage = errorMessage {
+                    Text(errorMessage)
+                }
+            }
         }
         .task {
             await loadUserClubs()

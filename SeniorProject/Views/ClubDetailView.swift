@@ -75,13 +75,13 @@ struct ClubDetailView: View {
                 
                 // Quick Info Cards
                 HStack(spacing: AppTheme.spacingMedium) {
-                    InfoCard(
+                    ClubInfoCard(
                         title: "Schedule",
                         value: club.meetingSchedule,
                         icon: "clock.fill"
                     )
                     
-                    InfoCard(
+                    ClubInfoCard(
                         title: "Location",
                         value: club.meetingLocation,
                         icon: "location.fill"
@@ -92,7 +92,7 @@ struct ClubDetailView: View {
                 // Segmented Control
                 CustomSegmentedControl(
                     selectedTab: $selectedTab,
-                    tabs: ["About", "Members", "Events"]
+                    tabs: ["About", "Members", "Events", "Announcements"]
                 )
                 .padding(.horizontal, AppTheme.spacingMedium)
                 
@@ -128,12 +128,37 @@ struct ClubDetailView: View {
                     
                     // Events Tab
                     VStack(spacing: AppTheme.spacingMedium) {
-                        ForEach(0..<3) { _ in
-                            EventRow()
+                        let clubEvents = MockData.events.filter { $0.clubID == club.id }
+                        if clubEvents.isEmpty {
+                            Text("No upcoming events")
+                                .font(.system(size: 16))
+                                .foregroundColor(AppTheme.textSecondary)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        } else {
+                            ForEach(clubEvents.sorted { $0.startTime < $1.startTime }) { event in
+                                EventCard(event: event)
+                            }
                         }
                     }
                     .padding(AppTheme.spacingMedium)
                     .tag(2)
+                    
+                    // Announcements Tab
+                    VStack(spacing: AppTheme.spacingMedium) {
+                        let clubAnnouncements = MockData.announcements.filter { $0.clubID == club.id }
+                        if clubAnnouncements.isEmpty {
+                            Text("No announcements yet")
+                                .font(.system(size: 16))
+                                .foregroundColor(AppTheme.textSecondary)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        } else {
+                            ForEach(clubAnnouncements.sorted { $0.creationDate > $1.creationDate }) { announcement in
+                                AnnouncementRow(announcement: announcement)
+                            }
+                        }
+                    }
+                    .padding(AppTheme.spacingMedium)
+                    .tag(3)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
             }
@@ -218,7 +243,12 @@ struct ClubDetailView: View {
                 isMember = true
                 // Reload members after joining
                 await viewModel.loadMembers(for: club.id.uuidString)
+                // Notify parent views about membership change
                 onMembershipChanged?()
+                // Dismiss the view to return to the previous screen
+                await MainActor.run {
+                    presentationMode.wrappedValue.dismiss()
+                }
             }
         } catch {
             errorMessage = error.localizedDescription
@@ -237,139 +267,16 @@ struct ClubDetailView: View {
             isMember = false
             // Reload members after leaving
             await viewModel.loadMembers(for: club.id.uuidString)
+            // Notify parent views about membership change
             onMembershipChanged?()
+            // Dismiss the view to return to the previous screen
+            await MainActor.run {
+                presentationMode.wrappedValue.dismiss()
+            }
         } catch {
             errorMessage = error.localizedDescription
             showError = true
         }
-    }
-}
-
-// Info Card
-struct InfoCard: View {
-    let title: String
-    let value: String
-    let icon: String
-    
-    var body: some View {
-        VStack(spacing: AppTheme.spacingSmall) {
-            Image(systemName: icon)
-                .font(.system(size: 24))
-                .foregroundColor(AppTheme.primary)
-            
-            Text(value)
-                .font(.system(size: 16, weight: .medium))
-                .foregroundColor(AppTheme.textPrimary)
-                .multilineTextAlignment(.center)
-            
-            Text(title)
-                .font(.system(size: 12))
-                .foregroundColor(AppTheme.textSecondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(AppTheme.spacingMedium)
-        .background(AppTheme.surface)
-        .cornerRadius(AppTheme.cornerRadiusMedium)
-        .shadow(
-            color: AppTheme.shadowSmall.color,
-            radius: AppTheme.shadowSmall.radius,
-            x: AppTheme.shadowSmall.x,
-            y: AppTheme.shadowSmall.y
-        )
-    }
-}
-
-// Info Row
-struct InfoRow: View {
-    let title: String
-    let value: String
-    
-    var body: some View {
-        HStack {
-            Text(title)
-                .font(.system(size: 16))
-                .foregroundColor(AppTheme.textSecondary)
-            
-            Spacer()
-            
-            Text(value)
-                .font(.system(size: 16, weight: .medium))
-                .foregroundColor(AppTheme.textPrimary)
-        }
-    }
-}
-
-// Member Row
-struct MemberRow: View {
-    let member: User
-    
-    var body: some View {
-        HStack(spacing: AppTheme.spacingMedium) {
-            Circle()
-                .fill(AppTheme.primary.opacity(0.1))
-                .frame(width: 40, height: 40)
-                .overlay(
-                    Image(systemName: "person.fill")
-                        .foregroundColor(AppTheme.primary)
-                )
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(member.username)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(AppTheme.textPrimary)
-                
-                Text(member.role.rawValue.capitalized)
-                    .font(.system(size: 14))
-                    .foregroundColor(AppTheme.textSecondary)
-            }
-            
-            Spacer()
-        }
-        .padding(AppTheme.spacingMedium)
-        .background(AppTheme.surface)
-        .cornerRadius(AppTheme.cornerRadiusMedium)
-        .shadow(
-            color: AppTheme.shadowSmall.color,
-            radius: AppTheme.shadowSmall.radius,
-            x: AppTheme.shadowSmall.x,
-            y: AppTheme.shadowSmall.y
-        )
-    }
-}
-
-// Event Row
-struct EventRow: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: AppTheme.spacingSmall) {
-            Text("Club Meeting")
-                .font(.system(size: 16, weight: .medium))
-                .foregroundColor(AppTheme.textPrimary)
-            
-            HStack {
-                Image(systemName: "calendar")
-                    .foregroundColor(AppTheme.primary)
-                Text("March 15, 2024")
-                    .font(.system(size: 14))
-                    .foregroundColor(AppTheme.textSecondary)
-                
-                Spacer()
-                
-                Image(systemName: "clock")
-                    .foregroundColor(AppTheme.primary)
-                Text("3:00 PM")
-                    .font(.system(size: 14))
-                    .foregroundColor(AppTheme.textSecondary)
-            }
-        }
-        .padding(AppTheme.spacingMedium)
-        .background(AppTheme.surface)
-        .cornerRadius(AppTheme.cornerRadiusMedium)
-        .shadow(
-            color: AppTheme.shadowSmall.color,
-            radius: AppTheme.shadowSmall.radius,
-            x: AppTheme.shadowSmall.x,
-            y: AppTheme.shadowSmall.y
-        )
     }
 }
 
