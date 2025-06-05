@@ -34,17 +34,19 @@ struct ProfileView: View {
                         .padding(.horizontal, AppTheme.spacingMedium)
                         
                         // Tab Content
-                        TabView(selection: $selectedTab) {
-                            aboutSection
-                                .tag(0)
-                            
-                            activitySection
-                                .tag(1)
-                            
-                            settingsSection
-                                .tag(2)
+                        Group {
+                            switch selectedTab {
+                            case 0:
+                                aboutSection
+                            case 1:
+                                activitySection
+                            case 2:
+                                settingsSection
+                            default:
+                                aboutSection
+                            }
                         }
-                        .tabViewStyle(.page(indexDisplayMode: .never))
+                        .transition(.opacity)
                     }
                 }
                 .padding(.bottom, AppTheme.spacingLarge)
@@ -134,6 +136,10 @@ struct ProfileView: View {
     
     private var aboutSection: some View {
         VStack(alignment: .leading, spacing: AppTheme.spacingMedium) {
+            Text("About Section")
+                .font(.headline)
+                .foregroundColor(.red)
+            
             InfoCard(
                 title: "Role",
                 value: authViewModel.currentUser?.role.rawValue.capitalized ?? "",
@@ -175,6 +181,10 @@ struct ProfileView: View {
     
     private var activitySection: some View {
         VStack(spacing: AppTheme.spacingMedium) {
+            Text("Activity Section")
+                .font(.headline)
+                .foregroundColor(.red)
+            
             ForEach(MockData.events.prefix(3)) { event in
                 EventCard(event: event)
             }
@@ -184,6 +194,10 @@ struct ProfileView: View {
     
     private var settingsSection: some View {
         VStack(spacing: AppTheme.spacingMedium) {
+            Text("Settings Section")
+                .font(.headline)
+                .foregroundColor(.red)
+            
             Button(role: .destructive) {
                 showingSignOutAlert = true
             } label: {
@@ -197,19 +211,15 @@ struct ProfileView: View {
                         .font(.system(size: 14))
                         .foregroundColor(AppTheme.textSecondary)
                 }
-                .foregroundColor(AppTheme.secondary)
+                .foregroundColor(.red)
                 .padding(AppTheme.spacingMedium)
-                .background(AppTheme.surface)
+                .frame(maxWidth: .infinity)
+                .background(Color.red.opacity(0.1))
                 .cornerRadius(AppTheme.cornerRadiusMedium)
-                .shadow(
-                    color: AppTheme.shadowSmall.color,
-                    radius: AppTheme.shadowSmall.radius,
-                    x: AppTheme.shadowSmall.x,
-                    y: AppTheme.shadowSmall.y
-                )
             }
         }
         .padding(.horizontal, AppTheme.spacingMedium)
+        .padding(.top, AppTheme.spacingMedium)
     }
 }
 

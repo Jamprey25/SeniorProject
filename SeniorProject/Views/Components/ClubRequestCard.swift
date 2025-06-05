@@ -7,6 +7,7 @@ struct ClubRequestCard: View {
     let onViewDetails: () -> Void
     @State private var isPressed = false
     @State private var showActions = false
+    @Environment(\.isProcessing) private var isProcessing
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -54,24 +55,44 @@ struct ClubRequestCard: View {
             if showActions {
                 HStack(spacing: AppTheme.spacingMedium) {
                     Button(action: onApprove) {
-                        Label("Approve", systemImage: "checkmark.circle.fill")
-                            .font(.subheadline)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
-                            .background(Color.green)
-                            .cornerRadius(AppTheme.cornerRadiusMedium)
+                        if isProcessing {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                                .background(Color.green)
+                                .cornerRadius(AppTheme.cornerRadiusMedium)
+                        } else {
+                            Label("Approve", systemImage: "checkmark.circle.fill")
+                                .font(.subheadline)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                                .background(Color.green)
+                                .cornerRadius(AppTheme.cornerRadiusMedium)
+                        }
                     }
+                    .disabled(isProcessing)
                     
                     Button(action: onReject) {
-                        Label("Reject", systemImage: "xmark.circle.fill")
-                            .font(.subheadline)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
-                            .background(AppTheme.secondary)
-                            .cornerRadius(AppTheme.cornerRadiusMedium)
+                        if isProcessing {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                                .background(AppTheme.secondary)
+                                .cornerRadius(AppTheme.cornerRadiusMedium)
+                        } else {
+                            Label("Reject", systemImage: "xmark.circle.fill")
+                                .font(.subheadline)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                                .background(AppTheme.secondary)
+                                .cornerRadius(AppTheme.cornerRadiusMedium)
+                        }
                     }
+                    .disabled(isProcessing)
                 }
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
