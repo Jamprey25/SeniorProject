@@ -114,16 +114,29 @@ struct ClubRequestDetailView: View {
                     if let action = action {
                         switch action {
                         case .approve:
-                            viewModel.approveClubRequest(id: request.id, adminComment: adminComment)
+                            handleApprove()
                         case .reject:
-                            viewModel.rejectClubRequest(id: request.id, adminComment: adminComment)
+                            handleReject()
                         }
-                        dismiss()
                     }
                 }
             } message: {
                 Text("Are you sure you want to \(action == .approve ? "approve" : "reject") this club request?")
             }
+        }
+    }
+    
+    private func handleApprove() {
+        Task {
+            await viewModel.approveClubRequest(id: request.id, adminComment: adminComment)
+            dismiss()
+        }
+    }
+    
+    private func handleReject() {
+        Task {
+            await viewModel.rejectClubRequest(id: request.id, adminComment: adminComment)
+            dismiss()
         }
     }
 } 
