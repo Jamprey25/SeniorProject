@@ -8,6 +8,7 @@ struct LoginView: View {
     @State private var username = ""
     @State private var isSignUp = false
     @State private var isAnimating = false
+    @State private var showPassword = false
     
     var body: some View {
         NavigationStack {
@@ -18,8 +19,10 @@ struct LoginView: View {
                 
                 if authViewModel.needsEmailVerification {
                     EmailVerificationView()
+                        .transition(AppTheme.slideTransition)
                 } else {
                     mainContent
+                        .transition(AppTheme.fadeTransition)
                 }
             }
             .navigationBarHidden(true)
@@ -38,9 +41,11 @@ struct LoginView: View {
             VStack(spacing: AppTheme.spacingLarge) {
                 // Logo and App Name
                 logoSection
+                    .transition(AppTheme.scaleTransition)
                 
                 // Form Fields
                 formFields
+                    .transition(AppTheme.slideTransition)
                 
                 // Error Message
                 if let errorMessage = authViewModel.errorMessage {
@@ -48,13 +53,16 @@ struct LoginView: View {
                         .foregroundColor(AppTheme.secondary)
                         .font(.subheadline)
                         .padding(.top, AppTheme.spacingSmall)
+                        .transition(AppTheme.fadeTransition)
                 }
                 
                 // Sign In/Up Button
                 signInUpButton
+                    .transition(AppTheme.scaleTransition)
                 
                 // Toggle Sign In/Up
                 toggleSignInUpButton
+                    .transition(AppTheme.fadeTransition)
             }
             .padding(.bottom, AppTheme.spacingLarge)
         }
@@ -66,13 +74,20 @@ struct LoginView: View {
                 .font(.system(size: 60))
                 .foregroundColor(AppTheme.primary)
                 .padding(.bottom, AppTheme.spacingSmall)
+                .symbolEffect(.bounce, options: .repeating, value: isAnimating)
             
             Text("ClubHub")
                 .font(.system(size: 40, weight: .bold, design: .rounded))
                 .foregroundColor(AppTheme.textPrimary)
+                .shadow(color: AppTheme.primary.opacity(0.3), radius: 2, x: 0, y: 2)
         }
         .padding(.top, 60)
         .padding(.bottom, 40)
+        .onAppear {
+            withAnimation(.easeInOut(duration: 2).repeatForever(autoreverses: true)) {
+                isAnimating.toggle()
+            }
+        }
     }
     
     private var formFields: some View {
@@ -83,6 +98,7 @@ struct LoginView: View {
                     placeholder: "Username",
                     systemImage: "person.fill"
                 )
+                .transition(AppTheme.slideTransition)
             }
             
             CustomTextField(
@@ -91,10 +107,32 @@ struct LoginView: View {
                 systemImage: "envelope.fill"
             )
             
-            CustomSecureField(
-                text: $password,
-                placeholder: "Password",
-                systemImage: "lock.fill"
+            HStack {
+                if showPassword {
+                    TextField("Password", text: $password)
+                        .textContentType(.password)
+                } else {
+                    SecureField("Password", text: $password)
+                        .textContentType(.password)
+                }
+                
+                Button(action: {
+                    withAnimation {
+                        showPassword.toggle()
+                    }
+                }) {
+                    Image(systemName: showPassword ? "eye.slash.fill" : "eye.fill")
+                        .foregroundColor(AppTheme.textSecondary)
+                }
+            }
+            .padding()
+            .background(AppTheme.surface)
+            .cornerRadius(AppTheme.cornerRadiusMedium)
+            .shadow(
+                color: AppTheme.shadowSmall.color,
+                radius: AppTheme.shadowSmall.radius,
+                x: AppTheme.shadowSmall.x,
+                y: AppTheme.shadowSmall.y
             )
         }
         .padding(.horizontal, AppTheme.spacingLarge)
@@ -170,33 +208,6 @@ struct CustomTextField: View {
                 .textContentType(.emailAddress)
                 .autocapitalization(.none)
                 .keyboardType(.emailAddress)
-        }
-        .padding()
-        .background(AppTheme.surface)
-        .cornerRadius(AppTheme.cornerRadiusMedium)
-        .shadow(
-            color: AppTheme.shadowSmall.color,
-            radius: AppTheme.shadowSmall.radius,
-            x: AppTheme.shadowSmall.x,
-            y: AppTheme.shadowSmall.y
-        )
-    }
-}
-
-// Custom SecureField
-struct CustomSecureField: View {
-    @Binding var text: String
-    let placeholder: String
-    let systemImage: String
-    
-    var body: some View {
-        HStack {
-            Image(systemName: systemImage)
-                .foregroundColor(AppTheme.textSecondary)
-                .frame(width: 20)
-            
-            SecureField(placeholder, text: $text)
-                .textContentType(.password)
         }
         .padding()
         .background(AppTheme.surface)

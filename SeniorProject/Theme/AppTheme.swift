@@ -45,6 +45,21 @@ struct AppTheme {
     static let animationFast: Double = 0.2
     static let animationMedium: Double = 0.3
     static let animationSlow: Double = 0.5
+    
+    // MARK: - Interactive Elements
+    static let buttonScale: CGFloat = 0.95
+    static let cardScale: CGFloat = 0.98
+    
+    // MARK: - Haptic Feedback
+    static let hapticFeedback = UIImpactFeedbackGenerator(style: .medium)
+    
+    // MARK: - Blur Effects
+    static let blurRadius: CGFloat = 10
+    
+    // MARK: - Transitions
+    static let slideTransition = AnyTransition.slide.combined(with: .opacity)
+    static let fadeTransition = AnyTransition.opacity
+    static let scaleTransition = AnyTransition.scale.combined(with: .opacity)
 }
 
 // MARK: - Color Extension
@@ -84,6 +99,8 @@ struct Shadow {
 
 // MARK: - View Modifiers
 struct CardStyle: ViewModifier {
+    @State private var isPressed = false
+    
     func body(content: Content) -> some View {
         content
             .background(AppTheme.surface)
@@ -94,10 +111,23 @@ struct CardStyle: ViewModifier {
                 x: AppTheme.shadowMedium.x,
                 y: AppTheme.shadowMedium.y
             )
+            .scaleEffect(isPressed ? AppTheme.cardScale : 1.0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isPressed)
+            .onTapGesture {
+                withAnimation {
+                    isPressed = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        isPressed = false
+                    }
+                }
+                AppTheme.hapticFeedback.impactOccurred()
+            }
     }
 }
 
 struct PrimaryButtonStyle: ViewModifier {
+    @State private var isPressed = false
+    
     func body(content: Content) -> some View {
         content
             .foregroundColor(.white)
@@ -111,6 +141,31 @@ struct PrimaryButtonStyle: ViewModifier {
                 x: 0,
                 y: 4
             )
+            .scaleEffect(isPressed ? AppTheme.buttonScale : 1.0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isPressed)
+            .onTapGesture {
+                withAnimation {
+                    isPressed = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        isPressed = false
+                    }
+                }
+                AppTheme.hapticFeedback.impactOccurred()
+            }
+    }
+}
+
+struct GlassmorphicStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .background(.ultraThinMaterial)
+            .cornerRadius(AppTheme.cornerRadiusMedium)
+            .shadow(
+                color: Color.black.opacity(0.1),
+                radius: 10,
+                x: 0,
+                y: 5
+            )
     }
 }
 
@@ -122,5 +177,45 @@ extension View {
     
     func primaryButtonStyle() -> some View {
         modifier(PrimaryButtonStyle())
+    }
+    
+    func glassmorphicStyle() -> some View {
+        modifier(GlassmorphicStyle())
+    }
+    
+    func shimmerEffect() -> some View {
+        self.modifier(ShimmerEffect())
+    }
+}
+
+// MARK: - Shimmer Effect
+struct ShimmerEffect: ViewModifier {
+    @State private var phase: CGFloat = 0
+    
+    func body(content: Content) -> some View {
+        content
+            .overlay(
+                GeometryReader { geometry in
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            .clear,
+                            Color.white.opacity(0.5),
+                            .clear
+                        ]),
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                    .frame(width: geometry.size.width * 2)
+                    .offset(x: -geometry.size.width + (geometry.size.width * 2 * phase))
+                    .animation(
+                        Animation.linear(duration: 1.5)
+                            .repeatForever(autoreverses: false),
+                        value: phase
+                    )
+                }
+            )
+            .onAppear {
+                phase = 1
+            }
     }
 } 

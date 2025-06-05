@@ -1,11 +1,15 @@
 import SwiftUI
+import FirebaseFirestore
 
 struct ExploreView: View {
     @EnvironmentObject var authViewModel: AuthenticationViewModel
     @State private var searchText = ""
     @State private var selectedCategory: Club.ClubCategory?
-    @State private var clubs = MockData.clubs
+    @State private var clubs: [Club] = []
     @State private var showingCreateClub = false
+    @State private var isLoading = false
+    @State private var errorMessage: String?
+    private let clubService = ClubService()
     
     var filteredClubs: [Club] {
         clubs.filter { club in
@@ -21,35 +25,146 @@ struct ExploreView: View {
     
     var body: some View {
         NavigationStack {
-            VStack {
+            VStack(spacing: 0) {
                 // Search Bar
-                HStack {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundColor(.gray)
-                    
-                    TextField("Search clubs...", text: $searchText)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                SearchBar(text: $searchText)
+                    .padding(.horizontal, AppTheme.spacingMedium)
+                    .padding(.top, AppTheme.spacingMedium)
+                
+                // Category Filter
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: AppTheme.spacingSmall) {
+                        CategoryFilterButton(
+                            title: "All",
+                            isSelected: selectedCategory == nil,
+                            action: { selectedCategory = nil }
+                        )
+                        
+                        ForEach(Club.ClubCategory.allCases, id: \.self) { category in
+                            CategoryFilterButton(
+                                title: category.rawValue,
+                                isSelected: selectedCategory == category,
+                                action: { selectedCategory = category }
+                            )
+                        }
+                    }
+                    .padding(.horizontal, AppTheme.spacingMedium)
                 }
-                .padding()
+                .padding(.vertical, AppTheme.spacingMedium)
                 
                 // Club List
-                List {
-                    Text("Explore View")
+                ScrollView {
+                    if isLoading {
+                        ProgressView()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else if clubs.isEmpty {
+                        VStack(spacing: AppTheme.spacingMedium) {
+                            Text("No clubs found")
+                                .font(.system(size: 16))
+                                .foregroundColor(AppTheme.textSecondary)
+                            
+                            Button(action: {
+                                Task {
+                                    isLoading = true
+                                    do {
+                                        try await clubService.createMockClubs()
+                                        await loadClubs()
+                                    } catch {
+                                        errorMessage = error.localizedDescription
+                                    }
+                                    isLoading = false
+                                }
+                            }) {
+                                if isLoading {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                } else {
+                                    Text("Create Mock Clubs")
+                                        .font(.system(size: 16, weight: .medium))
+                                        .foregroundColor(.white)
+                                }
+                            }
+                            .padding(.horizontal, AppTheme.spacingMedium)
+                            .padding(.vertical, AppTheme.spacingSmall)
+                            .background(AppTheme.primary)
+                            .cornerRadius(AppTheme.cornerRadiusMedium)
+                            .disabled(isLoading)
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else {
+                        LazyVGrid(columns: [
+                            GridItem(.flexible()),
+                            GridItem(.flexible())
+                        ], spacing: AppTheme.spacingMedium) {
+                            ForEach(filteredClubs) { club in
+                                NavigationLink(destination: ClubDetailView(club: club, onMembershipChanged: {
+                                    Task {
+                                        await loadClubs()
+                                    }
+                                })) {
+                                    ClubCard(club: club)
+                                }
+                            }
+                        }
+                        .padding(AppTheme.spacingMedium)
+                    }
                 }
             }
+            .background(AppTheme.background)
             .navigationTitle("Explore")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
+                    Button(action: {
                         showingCreateClub = true
-                    } label: {
+                    }) {
                         Image(systemName: "plus.circle.fill")
-                            .foregroundColor(AppTheme.primary)
+                            .font(.title2)
                     }
                 }
             }
             .sheet(isPresented: $showingCreateClub) {
                 CreateClubView()
+            }
+            .alert("Error", isPresented: .constant(errorMessage != nil)) {
+                Button("OK") {
+                    errorMessage = nil
+                }
+            } message: {
+                if let errorMessage = errorMessage {
+                    Text(errorMessage)
+                }
+            }
+        }
+        .task {
+            await loadClubs()
+        }
+    }
+    
+    private func loadClubs() async {
+        isLoading = true
+        defer { isLoading = false }
+        
+        do {
+            let db = Firestore.firestore()
+            let snapshot = try await db.collection("clubs").getDocuments()
+            
+            var loadedClubs: [Club] = []
+            for document in snapshot.documents {
+                do {
+                    if let club = try await clubService.getClub(clubId: document.documentID) {
+                        loadedClubs.append(club)
+                    }
+                } catch {
+                    print("Error loading club \(document.documentID): \(error.localizedDescription)")
+                }
+            }
+            
+            await MainActor.run {
+                self.clubs = loadedClubs
+            }
+        } catch {
+            await MainActor.run {
+                self.errorMessage = error.localizedDescription
             }
         }
     }

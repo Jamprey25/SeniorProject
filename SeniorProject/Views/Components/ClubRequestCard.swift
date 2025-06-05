@@ -5,63 +5,100 @@ struct ClubRequestCard: View {
     let onApprove: () -> Void
     let onReject: () -> Void
     let onViewDetails: () -> Void
+    @State private var isPressed = false
+    @State private var showActions = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            // Header
             HStack {
                 Text(request.clubName)
                     .font(.headline)
+                    .foregroundColor(AppTheme.textPrimary)
                 Spacer()
                 Text(request.category.rawValue)
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(AppTheme.primary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(AppTheme.primary.opacity(0.1))
+                    .cornerRadius(AppTheme.cornerRadiusSmall)
             }
             
-            Text("Requested by: \(request.requestedBy.username) (\(request.requestedBy.email))")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
+            // Request Info
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Requested by: \(request.requestedBy.username)")
+                    .font(.subheadline)
+                    .foregroundColor(AppTheme.textSecondary)
+                
+                Text(request.description)
+                    .font(.body)
+                    .foregroundColor(AppTheme.textPrimary)
+                    .lineLimit(2)
+            }
             
-            Text(request.description)
-                .font(.body)
-                .lineLimit(2)
-            
+            // Footer
             HStack {
                 Label("\(request.foundingMembers) founding members", systemImage: "person.2")
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(AppTheme.textSecondary)
                 
                 Spacer()
                 
                 Text(request.submissionDate.formatted(date: .abbreviated, time: .shortened))
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(AppTheme.textSecondary)
             }
             
-            HStack {
-                Button(action: onViewDetails) {
-                    Text("View Details")
-                        .frame(maxWidth: .infinity)
+            // Action Buttons
+            if showActions {
+                HStack(spacing: AppTheme.spacingMedium) {
+                    Button(action: onApprove) {
+                        Label("Approve", systemImage: "checkmark.circle.fill")
+                            .font(.subheadline)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                            .background(Color.green)
+                            .cornerRadius(AppTheme.cornerRadiusMedium)
+                    }
+                    
+                    Button(action: onReject) {
+                        Label("Reject", systemImage: "xmark.circle.fill")
+                            .font(.subheadline)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                            .background(AppTheme.secondary)
+                            .cornerRadius(AppTheme.cornerRadiusMedium)
+                    }
                 }
-                .buttonStyle(.bordered)
-                
-                Button(action: onApprove) {
-                    Text("Approve")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.green)
-                
-                Button(action: onReject) {
-                    Text("Reject")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.red)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
         .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(12)
-        .shadow(radius: 2)
+        .background(AppTheme.surface)
+        .cornerRadius(AppTheme.cornerRadiusMedium)
+        .shadow(
+            color: AppTheme.shadowMedium.color,
+            radius: AppTheme.shadowMedium.radius,
+            x: AppTheme.shadowMedium.x,
+            y: AppTheme.shadowMedium.y
+        )
+        .scaleEffect(isPressed ? AppTheme.cardScale : 1.0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isPressed)
+        .onTapGesture {
+            withAnimation(.spring()) {
+                isPressed = true
+                showActions.toggle()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    isPressed = false
+                }
+            }
+            AppTheme.hapticFeedback.impactOccurred()
+        }
+        .onLongPressGesture {
+            onViewDetails()
+        }
     }
 } 

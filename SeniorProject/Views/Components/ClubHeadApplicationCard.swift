@@ -5,76 +5,119 @@ struct ClubHeadApplicationCard: View {
     let onApprove: () -> Void
     let onReject: () -> Void
     let onViewDetails: () -> Void
+    @State private var isPressed = false
+    @State private var showActions = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            // Header
             HStack {
                 VStack(alignment: .leading) {
                     Text(application.applicant.username)
                         .font(.headline)
+                        .foregroundColor(AppTheme.textPrimary)
                     Text("Grade \(application.applicant.grade)")
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(AppTheme.textSecondary)
                 }
                 
                 Spacer()
                 
                 Text(application.submissionDate.formatted(date: .abbreviated, time: .shortened))
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(AppTheme.textSecondary)
             }
             
-            if let clubName = application.targetClubName {
-                Text("Existing Club: \(clubName)")
-                    .font(.subheadline)
-                    .foregroundColor(.blue)
-            } else {
-                Text("New Club Leadership")
-                    .font(.subheadline)
-                    .foregroundColor(.green)
-            }
-            
-            Text(application.applicationReason)
-                .font(.body)
-                .lineLimit(2)
-            
+            // Application Type
             HStack {
-                Label("\(application.applicant.currentClubs.count) current clubs", systemImage: "person.3")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                
-                Spacer()
-                
-                Text(application.applicant.email)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                if let clubName = application.targetClubName {
+                    Label("Existing Club: \(clubName)", systemImage: "building.2.fill")
+                        .font(.subheadline)
+                        .foregroundColor(AppTheme.primary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(AppTheme.primary.opacity(0.1))
+                        .cornerRadius(AppTheme.cornerRadiusSmall)
+                } else {
+                    Label("New Club Leadership", systemImage: "star.fill")
+                        .font(.subheadline)
+                        .foregroundColor(.green)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.green.opacity(0.1))
+                        .cornerRadius(AppTheme.cornerRadiusSmall)
+                }
             }
             
-            HStack {
-                Button(action: onViewDetails) {
-                    Text("View Application")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
+            // Application Details
+            VStack(alignment: .leading, spacing: 8) {
+                Text(application.applicationReason)
+                    .font(.body)
+                    .foregroundColor(AppTheme.textPrimary)
+                    .lineLimit(2)
                 
-                Button(action: onApprove) {
-                    Text("Approve")
-                        .frame(maxWidth: .infinity)
+                HStack {
+                    Label("\(application.applicant.currentClubs.count) current clubs", systemImage: "person.3")
+                        .font(.caption)
+                        .foregroundColor(AppTheme.textSecondary)
+                    
+                    Spacer()
+                    
+                    Text(application.applicant.email)
+                        .font(.caption)
+                        .foregroundColor(AppTheme.textSecondary)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(.green)
-                
-                Button(action: onReject) {
-                    Text("Reject")
-                        .frame(maxWidth: .infinity)
+            }
+            
+            // Action Buttons
+            if showActions {
+                HStack(spacing: AppTheme.spacingMedium) {
+                    Button(action: onApprove) {
+                        Label("Approve", systemImage: "checkmark.circle.fill")
+                            .font(.subheadline)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                            .background(Color.green)
+                            .cornerRadius(AppTheme.cornerRadiusMedium)
+                    }
+                    
+                    Button(action: onReject) {
+                        Label("Reject", systemImage: "xmark.circle.fill")
+                            .font(.subheadline)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                            .background(AppTheme.secondary)
+                            .cornerRadius(AppTheme.cornerRadiusMedium)
+                    }
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(.red)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
         .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(12)
-        .shadow(radius: 2)
+        .background(AppTheme.surface)
+        .cornerRadius(AppTheme.cornerRadiusMedium)
+        .shadow(
+            color: AppTheme.shadowMedium.color,
+            radius: AppTheme.shadowMedium.radius,
+            x: AppTheme.shadowMedium.x,
+            y: AppTheme.shadowMedium.y
+        )
+        .scaleEffect(isPressed ? AppTheme.cardScale : 1.0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isPressed)
+        .onTapGesture {
+            withAnimation(.spring()) {
+                isPressed = true
+                showActions.toggle()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    isPressed = false
+                }
+            }
+            AppTheme.hapticFeedback.impactOccurred()
+        }
+        .onLongPressGesture {
+            onViewDetails()
+        }
     }
 } 

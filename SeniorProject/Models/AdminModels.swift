@@ -4,7 +4,7 @@ struct AdminClubRequest: Identifiable {
     let id: UUID
     let clubName: String
     let description: String
-    let category: ClubCategory
+    let category: Club.ClubCategory
     let requestedBy: User
     let submissionDate: Date
     let status: RequestStatus
@@ -29,16 +29,6 @@ struct AdminClubHeadApplication: Identifiable {
     let status: ApplicationStatus
     let leadershipExperience: String
     let academicStanding: String
-}
-
-enum ClubCategory: String, CaseIterable {
-    case academic = "Academic"
-    case arts = "Arts"
-    case sports = "Sports"
-    case technology = "Technology"
-    case community = "Community Service"
-    case cultural = "Cultural"
-    case other = "Other"
 }
 
 enum RequestStatus: String {
